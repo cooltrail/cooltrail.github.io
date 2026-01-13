@@ -1,4 +1,258 @@
 baseURL = 'https://cooltrail.github.io/'
 languageCode = 'en-us'
 title = 'Darren Kampa'
-theme = 'ananke'
+theme = 'LoveIt'
+defaultContentLanguage = 'en'
+
+# Enable emojis
+enableEmoji = true
+
+[params]
+  # LoveIt theme version
+  version = "0.2.X"
+  
+  # Site description
+  description = "Darren Kampa's personal website"
+  keywords = ["blog", "personal", "portfolio"]
+  
+  # Default theme ("light", "dark", "auto")
+  defaultTheme = "auto"
+  
+  # Date format
+  dateFormat = "2006-01-02"
+  
+  # Website images for Open Graph and Twitter Cards
+  images = ["/logo.png"]
+
+  [params.app]
+    # Optional app title, defaults to site title
+    title = "Darren Kampa"
+    # Whether to omit the site name from the title
+    noFavicon = false
+    # Modern SVG favicon to use in place of default favicon
+    svgFavicon = ""
+    # Android browser theme color
+    themeColor = "#ffffff"
+    # Safari mask icon color
+    iconColor = "#5bbad5"
+
+  [params.header]
+    # Desktop header mode ("fixed", "normal", "auto")
+    desktopMode = "fixed"
+    # Mobile header mode ("fixed", "normal", "auto")
+    mobileMode = "auto"
+    
+    [params.header.title]
+      # URL of the LOGO
+      logo = ""
+      # Title name
+      name = "Darren Kampa"
+      # You can add extra information before the name (HTML format is supported), such as icons
+      pre = ""
+      # You can add extra information after the name (HTML format is supported), such as icons
+      post = ""
+      # Whether to use typeit animation for title name
+      typeit = false
+
+  [params.footer]
+    enable = true
+    # Custom content (HTML format is supported)
+    custom = ''
+    # Whether to show Hugo and theme info
+    hugo = true
+    # Whether to show copyright info
+    copyright = true
+    # Whether to show the author
+    author = true
+    # Site creation time
+    since = 2026
+    # ICP info only in China (HTML format is supported)
+    icp = ""
+    # License info (HTML format is supported)
+    license = ''
+
+  [params.section]
+    # Special amount of posts in each section page
+    paginate = 20
+    # Date format (month and day)
+    dateFormat = "01-02"
+    # Amount of RSS pages
+    rss = 10
+
+  [params.list]
+    # Special amount of posts in each list page
+    paginate = 20
+    # Date format (month and day)
+    dateFormat = "01-02"
+    # Amount of RSS pages
+    rss = 10
+
+  [params.home]
+    # Amount of RSS pages
+    rss = 10
+    
+    [params.home.profile]
+      enable = true
+      # Gravatar email for preferred avatar in home page
+      gravatarEmail = ""
+      # URL of avatar shown in home page
+      avatarURL = ""
+      # Title shown in home page (HTML format is supported)
+      title = "Darren Kampa"
+      # Subtitle shown in home page
+      subtitle = "Welcome to my personal website"
+      # Whether to use typeit animation for subtitle
+      typeit = true
+      # Whether to show social links
+      social = true
+      # Disclaimer (HTML format is supported)
+      disclaimer = ""
+    
+    [params.home.posts]
+      enable = true
+      # Special amount of posts in each home posts page
+      paginate = 6
+
+  [params.social]
+    GitHub = "cooltrail"
+    Linkedin = ""
+    Twitter = ""
+    Email = ""
+    RSS = true
+
+  [params.page]
+    # Whether to hide a page from home page
+    hiddenFromHomePage = false
+    # Whether to hide a page from search results
+    hiddenFromSearch = false
+    # Whether to enable twemoji
+    twemoji = false
+    # Whether to enable lightgallery
+    lightgallery = false
+    # Whether to enable the ruby extended syntax
+    ruby = true
+    # Whether to enable the fraction extended syntax
+    fraction = true
+    # Whether to enable the fontawesome extended syntax
+    fontawesome = true
+    # Whether to show link to Raw Markdown content of the content
+    linkToMarkdown = true
+    # Whether to show the full text content in RSS
+    rssFullText = false
+    
+    [params.page.toc]
+      # Whether to enable the table of contents
+      enable = true
+      # Whether to keep the static table of contents in front of the post
+      keepStatic = false
+      # Whether to make the table of contents in the sidebar automatically collapsed
+      auto = true
+    
+    [params.page.code]
+      # Whether to show the copy button of the code block
+      copy = true
+      # The maximum number of lines of displayed code by default
+      maxShownLines = 10
+      
+      [params.page.code.render]
+        # Disable special code block rendering to avoid template issues
+        goat = false
+        mermaid = false
+    
+    [params.page.math]
+      enable = false
+      # Default block delimiter is $$ ... $$ and \\[ ... \\]
+      blockLeftDelimiter = ""
+      blockRightDelimiter = ""
+      # Default inline delimiter is $ ... $ and \\( ... \\)
+      inlineLeftDelimiter = ""
+      inlineRightDelimiter = ""
+      # KaTeX extension copy_tex
+      copyTex = true
+      # KaTeX extension mhchem
+      mhchem = true
+    
+    [params.page.share]
+      enable = true
+      Twitter = true
+      Facebook = true
+      Linkedin = true
+      Reddit = true
+      HackerNews = true
+    
+    [params.page.comment]
+      enable = false
+
+# Menu config
+[menu]
+  [[menu.main]]
+    identifier = "posts"
+    # You can add extra information before the name (HTML format is supported), such as icons
+    pre = ""
+    # You can add extra information after the name (HTML format is supported), such as icons
+    post = ""
+    name = "Posts"
+    url = "/posts/"
+    # Title will be shown when you hover on this menu link
+    title = ""
+    weight = 1
+  [[menu.main]]
+    identifier = "tags"
+    pre = ""
+    post = ""
+    name = "Tags"
+    url = "/tags/"
+    title = ""
+    weight = 2
+  [[menu.main]]
+    identifier = "categories"
+    pre = ""
+    post = ""
+    name = "Categories"
+    url = "/categories/"
+    title = ""
+    weight = 3
+
+# Markup related config
+[markup]
+  [markup.highlight]
+    codeFences = true
+    guessSyntax = true
+    lineNos = true
+    lineNumbersInTable = true
+    noClasses = false
+  [markup.goldmark]
+    [markup.goldmark.extensions]
+      definitionList = true
+      footnote = true
+      linkify = true
+      strikethrough = true
+      table = true
+      taskList = true
+      typographer = true
+    [markup.goldmark.renderer]
+      # Whether to use HTML tags directly in the document
+      unsafe = true
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 6
+
+# Author config
+[author]
+  name = "Darren Kampa"
+  email = ""
+  link = ""
+
+# Sitemap config
+[sitemap]
+  changefreq = "weekly"
+  filename = "sitemap.xml"
+  priority = 0.5
+
+# Options to make hugo output files
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+  page = ["HTML"]
+  section = ["HTML", "RSS"]
+  taxonomy = ["HTML", "RSS"]
+  term = ["HTML"]

@@ -1,7 +1,10 @@
 +++
+title = 'My First Post'
 date = '2026-01-12T16:42:35-08:00'
 draft = true
-title = 'My First Post'
+description = 'My first blog post introducing myself to the world!'
+tags = ['blog', 'introduction']
+categories = ['general']
 +++
 
 ## Hello humans!
