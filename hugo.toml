@@ -1,4 +1,4 @@
-baseURL = 'https://darrenkampa.github.io/'
+baseURL = 'https://cooltrail.github.io/'
 languageCode = 'en-us'
 title = 'Darren Kampa'
 theme = 'ananke'
