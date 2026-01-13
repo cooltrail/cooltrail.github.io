@@ -54,6 +54,11 @@ enableEmoji = true
       # Whether to use typeit animation for title name
       typeit = false
 
+  [params.author]
+    name = "Darren Kampa"
+    email = "dk@g.c"
+    link = "https://cooltrail.github.io/"
+
   [params.footer]
     enable = true
     # Custom content (HTML format is supported)
@@ -239,9 +244,9 @@ enableEmoji = true
 
 # Author config
 [author]
-  name = "@blue749rabbit"
-  email = ""
-  link = ""
+  name = "Darren Kampa"
+  email = "dk@g.c"
+  link = "https://cooltrail.github.io/"
 
 # Sitemap config
 [sitemap]
