@@ -44,7 +44,7 @@ enableEmoji = true
     
     [params.header.title]
       # URL of the LOGO
-      logo = ""
+      logo = "/images/main-logo.jpg"
       # Title name
       name = "Darren Kampa"
       # You can add extra information before the name (HTML format is supported), such as icons
@@ -96,7 +96,7 @@ enableEmoji = true
       # Gravatar email for preferred avatar in home page
       gravatarEmail = ""
       # URL of avatar shown in home page
-      avatarURL = ""
+      avatarURL = "/images/main-logo.jpg"
       # Title shown in home page (HTML format is supported)
       title = "Darren Kampa"
       # Subtitle shown in home page
