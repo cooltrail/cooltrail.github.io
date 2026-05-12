@@ -1,6 +1,6 @@
 baseURL = 'https://cooltrail.github.io/'
 languageCode = 'en-us'
-title = 'Darren Kampa'
+title = 'blue749rabbit'
 theme = 'LoveIt'
 defaultContentLanguage = 'en'
 
@@ -12,7 +12,7 @@ enableEmoji = true
   version = "0.2.X"
   
   # Site description
-  description = "Darren Kampa's personal website"
+  description = "My videos can also be accesed with this website!"
   keywords = ["blog", "personal", "portfolio"]
   
   # Default theme ("light", "dark", "auto")
