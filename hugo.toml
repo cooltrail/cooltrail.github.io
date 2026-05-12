@@ -26,7 +26,7 @@ enableEmoji = true
 
   [params.app]
     # Optional app title, defaults to site title
-    title = "Darren Kampa"
+    title = "blue749rabbit"
     # Whether to omit the site name from the title
     noFavicon = false
     # Modern SVG favicon to use in place of default favicon
@@ -55,7 +55,7 @@ enableEmoji = true
       typeit = false
 
   [params.author]
-    name = "Darren Kampa"
+    name = "blue749rabbit"
     email = "dk@g.c"
     link = "https://cooltrail.github.io/"
 
@@ -244,7 +244,7 @@ enableEmoji = true
 
 # Author config
 [author]
-  name = "Darren Kampa"
+  name = "blue749rabbit"
   email = "dk@g.c"
   link = "https://cooltrail.github.io/"
 
