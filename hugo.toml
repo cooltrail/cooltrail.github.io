@@ -46,7 +46,7 @@ enableEmoji = true
       # URL of the LOGO
       logo = "/images/main-logo.jpg"
       # Title name
-      name = "Darren Kampa"
+      name = "blue749rabbit"
       # You can add extra information before the name (HTML format is supported), such as icons
       pre = ""
       # You can add extra information after the name (HTML format is supported), such as icons
@@ -103,7 +103,7 @@ enableEmoji = true
       # URL of avatar shown in home page
       avatarURL = "/images/main-logo.jpg"
       # Title shown in home page (HTML format is supported)
-      title = "Darren Kampa"
+      title = "blue749rabbit"
       # Subtitle shown in home page
       subtitle = "Welcome to my personal website"
       # Whether to use typeit animation for subtitle
