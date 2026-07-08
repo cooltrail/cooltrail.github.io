@@ -8,8 +8,8 @@ tags = ['blog', 'introduction']
 categories = ['roblox','rivals']
 +++
 
-## Hello humans!
-Just my first post to the world!
+## Roblox Rivals
+Here a some videos to enjoy!
 
 You will enjoy my video:
 {{< youtube ITzzpOKISiQ >}}
