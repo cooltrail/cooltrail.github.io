@@ -9,9 +9,7 @@ categories = ['roblox','rivals']
 +++
 
 ## Roblox Rivals
-Here a some videos to enjoy!
-
-123 hi!!
+Here a some videos on the game RIVALS to enjoy!
 
 You will enjoy my video:
-{{< youtube ITzzpOKISiQ >}}
+{{< youtube PLgGqJZ9HBMMNHaw3mKOyvmr7eZzb6LsUY >}}
