@@ -11,5 +11,5 @@ categories = ['roblox','rivals']
 ## Roblox Rivals
 Here a some videos on the game RIVALS to enjoy!
 
-You will enjoy my video:
-{{< youtube PLgGqJZ9HBMMNHaw3mKOyvmr7eZzb6LsUY >}}
+You will enjoy my playlist:
+{{< youtube-playlist PLgGqJZ9HBMMNHaw3mKOyvmr7eZzb6LsUY >}}
