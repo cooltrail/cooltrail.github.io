@@ -6,6 +6,16 @@
     '[role="button"], [role="link"], [role="menuitem"], [role="tab"], ' +
     '[tabindex]:not([tabindex="-1"]), [onclick]';
 
+  function preload(src) {
+    var audio = new Audio(src);
+    audio.preload = 'auto';
+    audio.load();
+    return audio;
+  }
+
+  var clickAudio = preload(CLICK_SRC);
+  var errorAudio = preload(ERROR_SRC);
+
   function isClickable(el) {
     while (el && el !== document.body && el !== document.documentElement) {
       if (el.matches && el.matches(CLICKABLE_SELECTOR)) return true;
@@ -16,18 +26,19 @@
     return false;
   }
 
-  function playSound(src) {
+  function playSound(base) {
     try {
-      var audio = new Audio(src);
-      audio.volume = 0.5;
-      audio.play().catch(function () {});
+      var node = base.cloneNode(true);
+      node.volume = 0.5;
+      var p = node.play();
+      if (p && p.catch) p.catch(function () {});
     } catch (e) {}
   }
 
   document.addEventListener(
     'click',
     function (event) {
-      playSound(isClickable(event.target) ? CLICK_SRC : ERROR_SRC);
+      playSound(isClickable(event.target) ? clickAudio : errorAudio);
     },
     true
   );
