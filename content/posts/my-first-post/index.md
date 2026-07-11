@@ -1,15 +1,15 @@
 +++
-title = 'My First Post'
+title = 'Rivals vids'
 date = '2026-01-12T16:42:35-08:00'
 draft = false
 author = '@blue749rabbit'
-description = 'My first blog post introducing myself to the world!'
+description = 'videos on rivals'
 tags = ['blog', 'introduction']
 categories = ['roblox','rivals']
 +++
 
 ## Roblox Rivals
-Here a some videos on the game RIVALS to enjoy!
 
-You will enjoy my playlist:
+
+Here is a playlist of videos on the game "RIVALS":
 {{< youtube-playlist PLgGqJZ9HBMMNHaw3mKOyvmr7eZzb6LsUY >}}
