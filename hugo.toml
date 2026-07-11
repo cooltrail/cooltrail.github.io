@@ -62,7 +62,7 @@ enableEmoji = true
   [params.footer]
     enable = true
     # Custom content (HTML format is supported)
-    custom = ''
+    custom = '<audio id="bg-music" src="/audio/windmill-isle-day.mp3" loop preload="auto"></audio><script src="/js/bg-music.js" defer></script>'
     # Whether to show Hugo and theme info
     hugo = true
     # Whether to show copyright info
@@ -105,7 +105,7 @@ enableEmoji = true
       # Title shown in home page (HTML format is supported)
       title = "blue749rabbit"
       # Subtitle shown in home page
-      subtitle = "Welcome to my personal website"
+      subtitle = "blue749rabbit official website"
       # Whether to use typeit animation for subtitle
       typeit = true
       # Whether to show social links
