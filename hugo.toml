@@ -62,7 +62,7 @@ enableEmoji = true
   [params.footer]
     enable = true
     # Custom content (HTML format is supported)
-    custom = ''
+    custom = '<script src="/js/click-sounds.js" defer></script>'
     # Whether to show Hugo and theme info
     hugo = true
     # Whether to show copyright info
