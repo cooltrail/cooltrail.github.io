@@ -2,7 +2,44 @@
   var audio = document.getElementById('bg-music');
   if (!audio) return;
 
+  var STORAGE_KEY = 'bg-music-state';
   var pausedForVideo = false;
+  var pausedByUser = false;
+
+  function saveState() {
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          time: audio.currentTime,
+          playing: !audio.paused && !pausedByUser,
+        })
+      );
+    } catch (e) {}
+  }
+
+  function readSavedState() {
+    try {
+      var raw = sessionStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  var saved = readSavedState();
+  if (saved && typeof saved.time === 'number') {
+    var applyTime = function () {
+      try {
+        audio.currentTime = saved.time;
+      } catch (e) {}
+    };
+    if (audio.readyState >= 1) {
+      applyTime();
+    } else {
+      audio.addEventListener('loadedmetadata', applyTime, { once: true });
+    }
+  }
 
   function startAudio() {
     var p = audio.play();
@@ -28,7 +65,7 @@
   function resumeAfterVideo() {
     if (pausedForVideo) {
       pausedForVideo = false;
-      audio.play().catch(function () {});
+      if (!pausedByUser) audio.play().catch(function () {});
     }
   }
 
@@ -78,5 +115,11 @@
     }
   }
 
-  startAudio();
+  window.addEventListener('pagehide', saveState);
+  window.addEventListener('beforeunload', saveState);
+  setInterval(saveState, 1000);
+
+  if (!saved || saved.playing !== false) {
+    startAudio();
+  }
 })();
