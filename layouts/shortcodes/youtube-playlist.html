@@ -4,8 +4,7 @@
 {{- $title := .Get "title" | default "YouTube playlist" -}}
 {{- if not $pc.Disable -}}
 {{- $host := cond $pc.PrivacyEnhanced "www.youtube-nocookie.com" "www.youtube.com" -}}
-{{- $uid := printf "yt-bg-%d" $.Ordinal -}}
 <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-  <iframe id="{{ $uid }}" class="bg-music-aware-video" src="https://{{ $host }}/embed/videoseries?list={{ $id }}&enablejsapi=1" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" title="{{ $title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  <iframe src="https://{{ $host }}/embed/videoseries?list={{ $id }}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" title="{{ $title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 </div>
 {{- end -}}

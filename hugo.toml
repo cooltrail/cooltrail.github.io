@@ -62,7 +62,7 @@ enableEmoji = true
   [params.footer]
     enable = true
     # Custom content (HTML format is supported)
-    custom = '<audio id="bg-music" src="/audio/windmill-isle-day.mp3" loop preload="auto"></audio><script src="/js/bg-music.js" defer></script>'
+    custom = ''
     # Whether to show Hugo and theme info
     hugo = true
     # Whether to show copyright info
