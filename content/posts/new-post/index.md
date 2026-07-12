@@ -1,9 +1,13 @@
 +++
-title = 'New Post'
+title = 'Knife progress'
 date = '2026-07-12T15:13:04-07:00'
 draft = false
 author = '@blue749rabbit'
-description = ''
+description = 'yeah... im just gonna update this like every months to see how many knife kills i have!'
 tags = []
-categories = []
+categories = ['roblox','rivals']
 +++
+
+## Roblox Rivals
+
+Jul 12: 10303

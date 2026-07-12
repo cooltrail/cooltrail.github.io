@@ -3,7 +3,7 @@ title = 'Gold Knife'
 date = '2026-01-12T16:42:35-08:00'
 draft = false
 author = '@blue749rabbit'
-description = 'I got gold knife (1k elims)'
+description = 'I got gold knife!!! (1k elims)'
 tags = ['blog', 'introduction']
 categories = ['roblox','rivals']
 +++
@@ -12,4 +12,4 @@ categories = ['roblox','rivals']
 
 
 Enjoy this!:
-{{< youtube-playlist PLgGqJZ9HBMMNHaw3mKOyvmr7eZzb6LsUY >}}
+{{< youtube-playlist TF9uJTav2cw >}}
