@@ -12,4 +12,4 @@ categories = ['roblox','rivals']
 
 
 Enjoy this!:
-{{< youtube-playlist TF9uJTav2cw >}}
+{{< youtube TF9uJTav2cw >}}

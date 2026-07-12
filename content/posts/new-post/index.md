@@ -10,4 +10,3 @@ categories = ['roblox','rivals']
 
 ## Roblox Rivals
 
-July: 10303 
