@@ -1,6 +1,6 @@
 (function () {
   var CLICK_SRC = '/audio/click.mp3';
-  var VOLUME = 0.85;
+  var VOLUME = 1.7;
 
   // Web Audio gives near-zero playback latency (audio is decoded to a raw
   // buffer up front, so play() has no per-click network/decode work left).
@@ -52,7 +52,7 @@
     }
     try {
       var node = fallbackAudio.cloneNode(true);
-      node.volume = VOLUME;
+      node.volume = Math.min(VOLUME, 1);
       var p = node.play();
       if (p && p.catch) p.catch(function () {});
     } catch (e) {}
