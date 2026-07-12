@@ -125,6 +125,14 @@ enableEmoji = true
     Email = ""
     RSS = true
 
+    [params.social.discord]
+      id = "FUtbNPspR3"
+      prefix = "https://discord.gg/"
+      title = "Discord"
+      weight = 64
+      [params.social.discord.icon]
+        class = "fab fa-discord fa-fw"
+
   [params.page]
     # Whether to hide a page from home page
     hiddenFromHomePage = false
