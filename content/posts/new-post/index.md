@@ -7,6 +7,6 @@ description = 'yeah... im just gonna update this like every months to see how ma
 tags = []
 categories = ['roblox','rivals']
 +++
-
+10406 - Jul 17 2026 
 ## Roblox Rivals
 

@@ -134,6 +134,13 @@ enableEmoji = true
       [params.social.discord.icon]
         class = "fab fa-discord fa-fw"
 
+    [params.social.roblox]
+      url = "https://www.roblox.com/users/5106375323/profile"
+      title = "Roblox"
+      weight = 65
+      [params.social.roblox.icon]
+        src = "lib/simple-icons/icons/roblox.svg"
+
   [params.page]
     # Whether to hide a page from home page
     hiddenFromHomePage = false
