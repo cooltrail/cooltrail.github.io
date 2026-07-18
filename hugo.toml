@@ -123,6 +123,7 @@ enableEmoji = true
     Linkedin = ""
     Twitter = ""
     Email = ""
+    Youtubechannel = "UC2n_alKDAOHv6fHwAO9yPhw"
     RSS = true
 
     [params.social.discord]
