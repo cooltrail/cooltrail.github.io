@@ -10,5 +10,5 @@ categories = ['roblox','rivals']
 
 ## Roblox Rivals
 
-As you all know, 
-10406 - Jul 17 2026 
+You can check how many knife elims i have after the day  
+Jul 17 2026 - 10468
