@@ -11,15 +11,21 @@ categories = ['minecraft']
 
 ## MineWare
 
-Here's my new Minecraft shader pack, MineWare! Click the button below to download it.
+Here's my Minecraft shader pack, MineWare! Choose a version to download below.
 
-<a href="/downloads/MineWare.zip" download class="shader-download-btn">⬇ Download MineWare.zip</a>
-
-### Update - Aug 8, 2026
+### v2 (latest) - Aug 8, 2026
 
 Tweaked some settings for a better look:
 - Lowered End dimension fog density
 - Adjusted End dimension sky color and brightness
+
+<a href="/downloads/MineWare_v2.zip" download class="shader-download-btn">⬇ Download MineWare v2.zip</a>
+
+### v1 (original) - Aug 2, 2026
+
+The original release.
+
+<a href="/downloads/MineWare_v1.zip" download class="shader-download-btn">⬇ Download MineWare v1.zip</a>
 
 <style>
 .shader-download-btn {
