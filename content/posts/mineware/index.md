@@ -1,6 +1,7 @@
 +++
 title = 'MineWare'
 date = '2026-08-02T16:36:00-07:00'
+lastmod = '2026-08-08T12:46:00-07:00'
 draft = false
 author = '@blue749rabbit'
 description = 'My new Minecraft shader pack, MineWare, free to download!'
@@ -13,6 +14,12 @@ categories = ['minecraft']
 Here's my new Minecraft shader pack, MineWare! Click the button below to download it.
 
 <a href="/downloads/MineWare.zip" download class="shader-download-btn">⬇ Download MineWare.zip</a>
+
+### Update - Aug 8, 2026
+
+Tweaked some settings for a better look:
+- Lowered End dimension fog density
+- Adjusted End dimension sky color and brightness
 
 <style>
 .shader-download-btn {
