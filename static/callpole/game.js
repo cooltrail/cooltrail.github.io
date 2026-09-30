@@ -8,8 +8,8 @@
   var ROWS = 46;
   var MCOLS = 48;
   var MROWS = 32;
-  var CHAR_W = 8;
-  var CHAR_H = 10;
+  var CHAR_W = 10;
+  var CHAR_H = 12;
   var SAVE = 'callpole-v3';
 
   var canvas = document.getElementById('game');
@@ -254,7 +254,7 @@
   }
 
   function bootWalkers() {
-    var colors = ['#c4b8a8', '#8aa0b4', '#b48a8a', '#9aa88a', '#c4a070', '#7a8aa0'];
+    var kinds = ['fox', 'wolf', 'squirrel', 'cat', 'rabbit', 'raccoon', 'bear', 'pigeon'];
     walkers = [];
     var spots = [
       [16, 7], [40, 7], [8, 15], [28, 15],
@@ -271,7 +271,7 @@
         y: s[1] * TILE,
         dir: i % 4,
         wait: Math.random(),
-        color: colors[i % colors.length]
+        species: kinds[i % kinds.length]
       });
     });
     mallSpots.forEach(function (s, i) {
@@ -281,7 +281,7 @@
         y: s[1] * TILE,
         dir: (i + 1) % 4,
         wait: Math.random(),
-        color: colors[(i + 2) % colors.length]
+        species: kinds[(i + 3) % kinds.length]
       });
     });
   }
@@ -424,7 +424,7 @@
     var n = pieceCount();
     if (quest === 'idle') {
       npc('mira').lines = [
-        'Mira. Civic works. The clouds are not weather.',
+        'Mira. Arctic fox. Civic works. The clouds are not weather.',
         'The forcefield blueprint was six pieces. I lost every one.',
         'Find them. City, alleys, the mall down south. Then the North Base can build it.'
       ];
@@ -438,7 +438,7 @@
       npc('mira').lines = ['I felt it lock in. A whole sky of glass. We get to keep the world.'];
     }
     npc('dash').lines = [
-      'Blue pole is a bus. Yellow pole is a taxi.',
+      'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
       'Mall has four doors. North, south, east, west. Space at any of them.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -447,14 +447,14 @@
         'Copy that. Forcefield coming up. Stay on the pad and watch the sky.'
       ];
     } else if (quest === 'idle' || quest === 'hunt') {
-      npc('rex').lines = ['North Base. We need all six blueprint pieces. You have ' + n + '.'];
+      npc('rex').lines = ['North Base. Wolf on duty. We need all six blueprint pieces. You have ' + n + '.'];
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
-    npc('kit').lines = ['The mall ate a scrap of paper. Huge gray south. Four doors. Space at any gate.'];
+    npc('kit').lines = ['Kit the cat. The mall ate a scrap of paper. Huge gray south. Four doors. Space at any gate.'];
     npc('jan').lines = n >= 6 || pieces[4] && pieces[4].got
-      ? ['Food court is just gray too. You already took the scrap.']
-      : ['Paper on the floor by the east shops. I thought it was a receipt.'];
+      ? ['Jan the rabbit. Food court is just gray too. You already took the scrap.']
+      : ['Jan the rabbit. Paper on the floor by the east shops. I thought it was a receipt.'];
   }
 
   function questLabel() {
@@ -631,28 +631,111 @@
     ctx.stroke();
   }
 
-  function drawChar(px, py, body) {
+  function palOf(species) {
+    if (species === 'wolf') return { fur: '#8b93a0', dark: '#5c6470', light: '#d8dce4', inner: '#c8a090', tip: '#d8dce4' };
+    if (species === 'afox') return { fur: '#e8eef4', dark: '#b8c4d0', light: '#ffffff', inner: '#7ec8ff', tip: '#7ec8ff' };
+    if (species === 'squirrel') return { fur: '#c47a3a', dark: '#8a5020', light: '#e8c090', inner: '#e8a070', tip: '#d4924a' };
+    if (species === 'cat') return { fur: '#d4a04a', dark: '#a07828', light: '#f4e4c4', inner: '#f0b0a0', tip: '#d4a04a' };
+    if (species === 'rabbit') return { fur: '#e8d4c4', dark: '#c4b0a0', light: '#fff6ee', inner: '#f0a0a8', tip: '#ffffff' };
+    if (species === 'raccoon') return { fur: '#9a9088', dark: '#2e2e36', light: '#dcd6ce', inner: '#c09080', tip: '#2e2e36' };
+    if (species === 'bear') return { fur: '#6b4a32', dark: '#3e2818', light: '#c4a07a', inner: '#8a6a4a', tip: '#6b4a32' };
+    if (species === 'pigeon') return { fur: '#a8b0b8', dark: '#6a7380', light: '#ece6dc', inner: '#7ec8ff', tip: '#c4a070' };
+    return { fur: '#e07a2a', dark: '#b85a14', light: '#f4d2a8', inner: '#f0a070', tip: '#f4e6d0' };
+  }
+
+  function npcCritter(kind) {
+    if (kind === 'mira') return { species: 'afox', accent: '#7ec8ff', label: 'Arctic fox' };
+    if (kind === 'rex') return { species: 'wolf', accent: '#7ed67a', label: 'Wolf' };
+    if (kind === 'dash') return { species: 'squirrel', accent: C.bus, label: 'Squirrel' };
+    if (kind === 'jan') return { species: 'rabbit', accent: '#e6a0d0', label: 'Rabbit' };
+    return { species: 'cat', accent: '#e07a2a', label: 'Cat' };
+  }
+
+  function drawAnimal(px, py, species, dir, accent, moving) {
+    var pal = palOf(species);
     var gx = Math.round(px - cam.x);
-    var gy = Math.round(py - cam.y);
-    pix(gx + 1, gy, 6, 4, C.skin);
-    pix(gx, gy + 4, CHAR_W, 6, body);
+    var gy = Math.round(py - cam.y) + (moving && Math.floor(time * 10) % 2 ? 1 : 0);
+    var left = dir === 1;
+    var back = dir === 3;
+    var side = dir === 1 || dir === 2;
+    function d(x, y, w, h, c) {
+      pix(gx + (left ? CHAR_W - x - w : x), gy + y, w, h, c);
+    }
+    if (species === 'pigeon') {
+      d(2, 3, 6, 5, pal.fur);
+      d(3, 4, 4, 3, pal.light);
+      if (!back) {
+        d(8, 5, 2, 1, pal.tip);
+        d(3, 4, 1, 1, '#1a1a20');
+        d(6, 4, 1, 1, '#1a1a20');
+      }
+      d(1, 5, 2, 3, pal.dark);
+      d(3, 8, 2, 2, pal.dark);
+      d(6, 8, 2, 2, pal.dark);
+      d(4, 10, 1, 2, pal.dark);
+      d(6, 10, 1, 2, pal.dark);
+      if (accent) d(2, 6, 6, 1, accent);
+      return;
+    }
+    if (species === 'rabbit') {
+      d(2, 0, 2, 4, pal.fur);
+      d(6, 0, 2, 4, pal.fur);
+      d(3, 1, 1, 3, pal.inner);
+      d(6, 1, 1, 3, pal.inner);
+    } else if (species === 'bear') {
+      d(2, 1, 2, 2, pal.fur);
+      d(6, 1, 2, 2, pal.fur);
+    } else if (species === 'squirrel') {
+      d(3, 0, 2, 2, pal.fur);
+      d(6, 0, 2, 2, pal.fur);
+      d(3, 1, 1, 1, pal.inner);
+      d(7, 1, 1, 1, pal.inner);
+    } else {
+      d(2, 0, 2, 2, pal.fur);
+      d(6, 0, 2, 2, pal.fur);
+      d(3, 1, 1, 1, pal.inner);
+      d(6, 1, 1, 1, pal.inner);
+    }
+    d(2, 2, 6, 4, pal.fur);
+    if (species === 'raccoon') d(2, 3, 6, 2, pal.dark);
+    if (!back) {
+      d(3, 3, 1, 1, species === 'raccoon' ? pal.light : '#1a1a20');
+      d(6, 3, 1, 1, species === 'raccoon' ? pal.light : '#1a1a20');
+      d(4, 5, 2, 1, pal.light);
+      d(5, 5, 1, 1, '#1a1a20');
+      if (side) d(8, 4, 2, 2, pal.fur);
+    }
+    if (species === 'squirrel') {
+      d(0, 3, 3, 7, pal.fur);
+      d(0, 2, 2, 3, pal.tip);
+    } else if (species === 'rabbit') {
+      d(7, 8, 2, 2, pal.tip);
+    } else if (species === 'cat') {
+      d(0, 5, 2, 5, pal.fur);
+    } else if (species === 'raccoon') {
+      d(0, 6, 2, 2, pal.fur);
+      d(0, 8, 2, 2, pal.dark);
+      d(0, 10, 2, 1, pal.fur);
+    } else if (species === 'bear') {
+      d(8, 8, 2, 2, pal.fur);
+    } else {
+      d(0, 6, 3, 3, pal.fur);
+      d(0, 5, 2, 2, pal.tip);
+    }
+    d(2, 6, 6, 4, pal.fur);
+    d(3, 7, 4, 2, pal.light);
+    if (accent) d(2, 6, 6, 1, accent);
+    d(2, 10, 2, 2, pal.dark);
+    d(6, 10, 2, 2, pal.dark);
   }
 
   function drawQuestMark(px, py) {
-    var gx = Math.round(px - cam.x) + 2;
-    var gy = Math.round(py - cam.y) - 7 + (Math.sin(time * 4) > 0 ? 0 : 1);
+    var gx = Math.round(px - cam.x) + 3;
+    var gy = Math.round(py - cam.y) - 8 + (Math.sin(time * 4) > 0 ? 0 : 1);
     pix(gx - 1, gy, 3, 1, C.paper);
     pix(gx + 1, gy + 1, 1, 1, C.paper);
     pix(gx, gy + 2, 1, 1, C.paper);
     pix(gx, gy + 4, 1, 1, C.paper);
-  }
-
-  function npcColor(kind) {
-    if (kind === 'mira') return '#7ec8ff';
-    if (kind === 'rex') return '#7ed67a';
-    if (kind === 'dash') return C.bus;
-    if (kind === 'jan') return '#e6a0d0';
-    return '#e07a2a';
   }
 
   function carColor(kind) {
@@ -699,11 +782,12 @@
       pix((MCOLS - 1) * TILE - cam.x, 13 * TILE - cam.y, TILE, 6 * TILE, '#555555');
     }
     walkers.forEach(function (w) {
-      if (w.place === place) drawChar(w.x, w.y, w.color);
+      if (w.place === place) drawAnimal(w.x, w.y, w.species, w.dir, null, w.wait <= 0);
     });
     npcs.forEach(function (e) {
       if (e.place !== place) return;
-      drawChar(e.x, e.y, npcColor(e.kind));
+      var a = npcCritter(e.kind);
+      drawAnimal(e.x, e.y, a.species, 0, a.accent, false);
       drawQuestMark(e.x, e.y);
     });
     pieces.forEach(function (p) {
@@ -713,7 +797,7 @@
       }
     });
     if (scene !== 'ride') {
-      drawChar(player.x, player.y, quest === 'have' || quest === 'build' ? C.paper : C.accent);
+      drawAnimal(player.x, player.y, 'fox', player.dir, quest === 'have' || quest === 'build' ? C.paper : C.accent, player.walk);
     }
     drawVehicle();
     if (place === 'city') drawForcefield();
@@ -895,7 +979,7 @@
 
   function openTalk(e) {
     refreshLines();
-    talk.who = e.name;
+    talk.who = e.name + ' · ' + npcCritter(e.kind).label;
     talk.lines = e.lines.slice();
     talk.i = 0;
     talk.after = function () {
