@@ -178,6 +178,7 @@
     addBuilding(48, 20, 7, 3);
     addBuilding(1, 28, 8, 15);
     addBuilding(14, 28, 41, 15);
+    paintCrosswalks();
     cityMap = map;
     cityBuildings = buildings;
     map = allocMap(MCOLS, MROWS);
@@ -228,12 +229,35 @@
     refreshLines();
   }
 
+  function paintCrosswalks() {
+    var vx = [10, 22, 34, 56];
+    var hy = [8, 16, 24];
+    var sy = [1, 7, 11, 15, 19, 23, 27, 33, 43];
+    var sx = [3, 9, 13, 21, 25, 33, 37, 47, 55, 59];
+    var i, j, x, y;
+    for (i = 0; i < vx.length; i++) {
+      for (j = 0; j < sy.length; j++) {
+        x = vx[i];
+        y = sy[j];
+        if (y >= 0 && y < ROWS && map[y] && map[y][x] === 1) fill(x, y, 3, 1, 5);
+      }
+    }
+    for (i = 0; i < hy.length; i++) {
+      for (j = 0; j < sx.length; j++) {
+        x = sx[j];
+        y = hy[i];
+        if (x >= 0 && x < COLS && map[y] && map[y][x] === 1) fill(x, y, 1, 3, 6);
+      }
+    }
+  }
+
   function bootWalkers() {
     var colors = ['#c4b8a8', '#8aa0b4', '#b48a8a', '#9aa88a', '#c4a070', '#7a8aa0'];
     walkers = [];
     var spots = [
-      [18, 18], [28, 18], [8, 18], [40, 18], [16, 10], [30, 10],
-      [12, 26], [40, 26], [50, 18], [6, 26], [20, 6], [48, 27]
+      [16, 7], [40, 7], [8, 15], [28, 15],
+      [18, 19], [40, 19], [8, 23], [40, 23],
+      [6, 27], [50, 27], [13, 34], [55, 34]
     ];
     var mallSpots = [
       [16, 12], [24, 16], [32, 12], [20, 20], [16, 8], [12, 18], [32, 18], [16, 22]
@@ -381,7 +405,21 @@
 
   function isRoad(tx, ty) {
     if (!cityMap[ty] || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
-    return cityMap[ty][tx] === 1;
+    var id = cityMap[ty][tx];
+    return id === 1 || id === 5 || id === 6;
+  }
+
+  function pedWalk(px, py) {
+    var id = tileAt(px, py);
+    return id === 0 || id === 4 || id === 5 || id === 6;
+  }
+
+  function walkerOk(x, y) {
+    if (x < 0 || y < 0) return false;
+    if (x + CHAR_W > map[0].length * TILE || y + CHAR_H > map.length * TILE) return false;
+    if (place === 'mall') return !blocked(x, y, CHAR_W, CHAR_H);
+    return pedWalk(x, y) && pedWalk(x + CHAR_W - 1, y) &&
+      pedWalk(x, y + CHAR_H - 1) && pedWalk(x + CHAR_W - 1, y + CHAR_H - 1);
   }
 
   function nearestRoad(px, py) {
@@ -441,9 +479,16 @@
   function drawTile(id, sx, sy) {
     var gx = sx - cam.x;
     var gy = sy - cam.y;
+    var i;
     if (gx > VW || gy > VH || gx + TILE < 0 || gy + TILE < 0) return;
     if (id === 1) pix(gx, gy, TILE, TILE, C.road);
-    else if (id === 4) pix(gx, gy, TILE, TILE, C.plaza);
+    else if (id === 5) {
+      pix(gx, gy, TILE, TILE, C.road);
+      for (i = 0; i < 4; i++) pix(gx + 2 + i * 3, gy + 1, 2, TILE - 2, C.white);
+    } else if (id === 6) {
+      pix(gx, gy, TILE, TILE, C.road);
+      for (i = 0; i < 4; i++) pix(gx + 1, gy + 2 + i * 3, TILE - 2, 2, C.white);
+    } else if (id === 4) pix(gx, gy, TILE, TILE, C.plaza);
     else if (id === 3) pix(gx, gy, TILE, TILE, '#888888');
     else pix(gx, gy, TILE, TILE, C.walk);
   }
@@ -646,7 +691,7 @@
   }
 
   function updateWalkers(dt) {
-    var i, w, dx, dy, nx, ny, spd;
+    var i, w, dx, dy, nx, ny, spd, mid, zebra, turn;
     for (i = 0; i < walkers.length; i++) {
       w = walkers[i];
       if (w.place !== place) continue;
@@ -659,14 +704,35 @@
       dy = w.dir === 0 ? spd : w.dir === 3 ? -spd : 0;
       nx = w.x + dx * dt;
       ny = w.y + dy * dt;
-      if (blocked(nx, w.y, CHAR_W, CHAR_H) || blocked(w.x, ny, CHAR_W, CHAR_H) || Math.random() < dt * 0.35) {
-        w.dir = Math.floor(Math.random() * 4);
-        w.wait = 0.15 + Math.random() * 1.1;
+      mid = tileAt(w.x + CHAR_W / 2, w.y + CHAR_H / 2);
+      zebra = mid === 5 || mid === 6;
+      turn = !walkerOk(nx, ny) || (!zebra && Math.random() < dt * 0.22);
+      if (turn) {
+        w.dir = pickWalkerDir(w);
+        w.wait = zebra ? 0 : 0.12 + Math.random() * 0.9;
       } else {
-        w.x = clamp(nx, 0, map[0].length * TILE - CHAR_W);
-        w.y = clamp(ny, 0, map.length * TILE - CHAR_H);
+        w.x = nx;
+        w.y = ny;
       }
     }
+  }
+
+  function pickWalkerDir(w) {
+    var dirs = [0, 1, 2, 3];
+    var k, d, nx, ny, spd = 4;
+    for (k = dirs.length - 1; k > 0; k--) {
+      d = Math.floor(Math.random() * (k + 1));
+      nx = dirs[k];
+      dirs[k] = dirs[d];
+      dirs[d] = nx;
+    }
+    for (k = 0; k < dirs.length; k++) {
+      d = dirs[k];
+      nx = w.x + (d === 2 ? spd : d === 1 ? -spd : 0);
+      ny = w.y + (d === 0 ? spd : d === 3 ? -spd : 0);
+      if (walkerOk(nx, ny)) return d;
+    }
+    return w.dir;
   }
 
   function takePiece(p) {
