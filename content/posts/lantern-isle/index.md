@@ -8,21 +8,19 @@ tags = ['game', 'lantern-isle']
 categories = ['games']
 +++
 
-## Lantern Isle
+<a href="/lantern-isle/" class="play-btn">Open fullscreen</a>
 
-A little island you can walk. Talk to the keepers, step through their gates, and light every lantern.
-
-<a href="/lantern-isle/" class="play-btn">Play Lantern Isle</a>
+<iframe class="isle-frame" src="/lantern-isle/" title="Lantern Isle" allow="autoplay"></iframe>
 
 - **Move** Arrows or WASD
 - **Talk / play** Space, Enter, or click
-- On a phone, use the pad
+- Click the game first so the keys go there
 
 <style>
 .play-btn {
   display: inline-block;
-  margin: 0.75rem 0 1.25rem;
-  padding: 0.75rem 1.5rem;
+  margin: 0 0 1rem;
+  padding: 0.65rem 1.35rem;
   background-color: #d94a32;
   color: #fff4d6 !important;
   font-weight: bold;
@@ -30,7 +28,12 @@ A little island you can walk. Talk to the keepers, step through their gates, and
   border-radius: 999px;
   border: 3px solid #3a2418;
 }
-.play-btn:hover {
-  background-color: #f06a4a;
+.isle-frame {
+  display: block;
+  width: 100%;
+  height: min(70vh, 560px);
+  border: 4px solid #3a2418;
+  border-radius: 8px;
+  background: #16343a;
 }
 </style>
