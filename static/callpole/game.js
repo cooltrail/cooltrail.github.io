@@ -78,6 +78,7 @@
   var poles = [];
   var pieces = [];
   var walkers = [];
+  var cars = [];
   var mallDoors = [];
   var near = null;
   var talk = { lines: [], i: 0, who: '', after: null };
@@ -225,6 +226,7 @@
       { id: 'e', ox: 55, oy: 33, ow: 2, oh: 4, ix: 46, iy: 13, iw: 2, ih: 6, sx: 44, sy: 16, outX: 55, outY: 34 }
     ];
     bootWalkers();
+    bootCars();
     if (!pieces.length) resetPieces();
     refreshLines();
   }
@@ -282,6 +284,119 @@
         color: colors[(i + 2) % colors.length]
       });
     });
+  }
+
+  function pt(tx, ty) {
+    return { x: tx * TILE + 8, y: ty * TILE + 8 };
+  }
+
+  function makeLoop(x0, y0, x1, y1) {
+    var pts = [];
+    var x, y;
+    for (x = x0; x < x1; x++) pts.push(pt(x, y0));
+    for (y = y0; y < y1; y++) pts.push(pt(x1, y));
+    for (x = x1; x > x0; x--) pts.push(pt(x, y1));
+    for (y = y1; y > y0; y--) pts.push(pt(x0, y));
+    return pts;
+  }
+
+  function makeVertShuttle(xDown, xUp, y0, y1) {
+    var pts = [];
+    var y;
+    for (y = y0; y <= y1; y++) pts.push(pt(xDown, y));
+    for (y = y1; y >= y0; y--) pts.push(pt(xUp, y));
+    return pts;
+  }
+
+  function bootCars() {
+    cars = [];
+    function add(path, n, kind0) {
+      var i, pi, kind, c, tries;
+      for (i = 0; i < n; i++) {
+        pi = Math.floor((i * path.length) / n) % path.length;
+        kind = ['bus', 'taxi', 'car'][(kind0 + i) % 3];
+        c = {
+          kind: kind,
+          path: path,
+          pi: pi,
+          x: path[pi].x,
+          y: path[pi].y,
+          dir: 2,
+          spd: kind === 'taxi' ? 168 : kind === 'bus' ? 150 : 158
+        };
+        tries = 0;
+        while (tries < path.length && carHits(c, c.x, c.y, -1)) {
+          pi = (pi + 7) % path.length;
+          c.pi = pi;
+          c.x = path[pi].x;
+          c.y = path[pi].y;
+          tries += 7;
+        }
+        cars.push(c);
+      }
+    }
+    add(makeLoop(10, 10, 58, 24), 3, 0);
+    add(makeLoop(22, 10, 36, 16), 1, 1);
+    add(makeLoop(10, 10, 24, 16), 1, 2);
+    add(makeLoop(34, 10, 58, 16), 1, 0);
+    add(makeLoop(10, 18, 36, 24), 1, 1);
+    add(makeLoop(34, 18, 58, 24), 1, 2);
+    add(makeVertShuttle(12, 10, 26, 44), 1, 0);
+    add(makeVertShuttle(58, 56, 26, 44), 1, 1);
+  }
+
+  function carSize(c) {
+    var horiz = c.dir === 1 || c.dir === 2;
+    var long = c.kind === 'bus' ? 14 : 10;
+    var short = 6;
+    return horiz ? { w: long, h: short } : { w: short, h: long };
+  }
+
+  function carHits(c, nx, ny, skip) {
+    var a = carSize(c);
+    var i, o, b, pad = 4;
+    for (i = 0; i < cars.length; i++) {
+      if (i === skip) continue;
+      o = cars[i];
+      b = carSize(o);
+      if (aabb(nx - a.w / 2, ny - a.h / 2, a.w + pad, a.h + pad, o.x - b.w / 2, o.y - b.h / 2, b.w, b.h)) return true;
+    }
+    if (scene === 'ride' && ride.vehicle) {
+      o = ride.vehicle;
+      o.dir = o.dir || c.dir;
+      b = carSize(o);
+      if (aabb(nx - a.w / 2, ny - a.h / 2, a.w + pad, a.h + pad, o.x - b.w / 2, o.y - b.h / 2, b.w, b.h)) return true;
+    }
+    return false;
+  }
+
+  function updateCars(dt) {
+    var i, c, p, dx, dy, dist, nx, ny, nxt;
+    for (i = 0; i < cars.length; i++) {
+      c = cars[i];
+      if (!c.path || !c.path.length) continue;
+      p = c.path[c.pi];
+      dx = p.x - c.x;
+      dy = p.y - c.y;
+      dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 4) {
+        c.pi = (c.pi + 1) % c.path.length;
+        nxt = c.path[c.pi];
+        dx = nxt.x - c.x;
+        dy = nxt.y - c.y;
+        if (Math.abs(dx) > Math.abs(dy)) c.dir = dx > 0 ? 2 : 1;
+        else if (dy) c.dir = dy > 0 ? 0 : 3;
+        continue;
+      }
+      if (Math.abs(dx) > Math.abs(dy)) c.dir = dx > 0 ? 2 : 1;
+      else c.dir = dy > 0 ? 0 : 3;
+      nx = c.x + (dx / dist) * c.spd * dt;
+      ny = c.y + (dy / dist) * c.spd * dt;
+      if (!carHits(c, nx, ny, i)) {
+        c.x = nx;
+        c.y = ny;
+      }
+    }
   }
 
   function resetPieces() {
@@ -540,14 +655,22 @@
     return '#e07a2a';
   }
 
+  function carColor(kind) {
+    if (kind === 'bus') return C.bus;
+    if (kind === 'taxi') return C.taxi;
+    return '#8b93a3';
+  }
+
+  function drawCar(c) {
+    var gx = c.x - cam.x;
+    var gy = c.y - cam.y;
+    var s = carSize(c);
+    if (gx + s.w < 0 || gy + s.h < 0 || gx - s.w > VW || gy - s.h > VH) return;
+    pix(gx - s.w / 2, gy - s.h / 2, s.w, s.h, carColor(c.kind));
+  }
+
   function drawVehicle() {
-    if (scene !== 'ride' || !ride.vehicle) return;
-    var v = ride.vehicle;
-    var gx = v.x - cam.x;
-    var gy = v.y - cam.y;
-    var w = v.kind === 'bus' ? 14 : 10;
-    var h = 6;
-    pix(gx - w / 2, gy - h / 2, w, h, v.kind === 'bus' ? C.bus : C.taxi);
+    if (scene === 'ride' && ride.vehicle) drawCar(ride.vehicle);
   }
 
   function drawWorld() {
@@ -568,6 +691,7 @@
         pix(d.ox * TILE - cam.x, d.oy * TILE - cam.y, d.ow * TILE, d.oh * TILE, '#555555');
       });
       poles.forEach(drawPole);
+      cars.forEach(drawCar);
     } else {
       pix(20 * TILE - cam.x, 0 - cam.y, 8 * TILE, 4, '#555555');
       pix(20 * TILE - cam.x, (MROWS - 1) * TILE - cam.y, 8 * TILE, TILE, '#555555');
@@ -597,7 +721,7 @@
   }
 
   function updateWorld(dt) {
-    var spd = 76;
+    var spd = 48;
     player.vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
     player.vy = (hold.up ? -spd : 0) + (hold.down ? spd : 0);
     if (player.vx && player.vy) {
@@ -622,6 +746,7 @@
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
     cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
     updateWalkers(dt);
+    updateCars(dt);
 
     if (quest === 'build') {
       lattice = Math.min(1, lattice + dt * 0.35);
@@ -852,7 +977,7 @@
     ride.dest = dest;
     ride.path = findPath(start.x, start.y, end.x, end.y);
     ride.pi = 0;
-    ride.vehicle = { kind: ride.pole.kind, x: start.x, y: start.y };
+    ride.vehicle = { kind: ride.pole.kind, x: start.x, y: start.y, dir: 2 };
     player.x = start.x;
     player.y = start.y;
     scene = 'ride';
@@ -884,7 +1009,9 @@
     var dx = p.x - v.x;
     var dy = p.y - v.y;
     var dist = Math.sqrt(dx * dx + dy * dy);
-    var spd = v.kind === 'taxi' ? 150 : 110;
+    var spd = v.kind === 'taxi' ? 168 : 150;
+    if (Math.abs(dx) > Math.abs(dy)) v.dir = dx > 0 ? 2 : 1;
+    else if (dy) v.dir = dy > 0 ? 0 : 3;
     if (dist < 3) {
       v.x = p.x;
       v.y = p.y;
@@ -1018,15 +1145,19 @@
       drawWorld();
     } else if (scene === 'ride') {
       updateRide(dt);
+      updateCars(dt);
       drawWorld();
     } else if (scene === 'dialog' || scene === 'pick') {
+      updateCars(dt);
       drawWorld();
     } else if (scene === 'end') {
+      updateCars(dt);
       drawWorld();
     } else if (scene === 'title') {
       cam.x = 180 + Math.sin(time * 0.2) * 16;
       cam.y = 200;
       if (!map.length) buildMap();
+      updateCars(dt);
       drawWorld();
     }
     actEdge = false;
