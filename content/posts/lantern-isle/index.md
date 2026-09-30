@@ -1,20 +1,18 @@
 +++
-title = 'Lantern Isle'
-date = '2026-09-30T15:19:00-07:00'
+title = 'Callpole'
+date = '2026-09-30T15:24:00-07:00'
 draft = false
 author = '@blue749rabbit'
-description = 'A tiny festival island game. Walk around, talk to keepers, and light every lantern.'
-tags = ['game', 'lantern-isle']
+description = 'A dusk city. Call a bus or a taxi. Get the blueprint to the base before the sky opens.'
+tags = ['game', 'callpole']
 categories = ['games']
 +++
 
-<a href="/lantern-isle/" class="play-btn">Open fullscreen</a>
+<a href="/callpole/" class="play-btn">Open fullscreen</a>
 
-<iframe class="isle-frame" src="/lantern-isle/" title="Lantern Isle" allow="autoplay"></iframe>
+<iframe class="isle-frame" src="/callpole/" title="Callpole" allow="autoplay"></iframe>
 
-- **Move** Arrows or WASD
-- **Talk / play** Space, Enter, or click
-- Click the game first so the keys go there
+Talk to **Mira** in the plaza. Take the blueprint to **Rex** at North Base. Blue poles call buses. Yellow poles call taxis.
 
 <style>
 .play-btn {
@@ -34,6 +32,6 @@ categories = ['games']
   height: min(70vh, 560px);
   border: 4px solid #3a2418;
   border-radius: 8px;
-  background: #16343a;
+  background: #121826;
 }
 </style>

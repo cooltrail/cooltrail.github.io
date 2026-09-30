@@ -237,9 +237,9 @@ enableEmoji = true
     identifier = "lantern-isle"
     pre = ""
     post = ""
-    name = "Lantern Isle"
-    url = "/lantern-isle/"
-    title = "Play Lantern Isle"
+    name = "Callpole"
+    url = "/callpole/"
+    title = "Play Callpole"
     weight = 4
 
 # Markup related config
