@@ -361,6 +361,15 @@
     pix(px - cam.x, py - cam.y, 1, 1, color);
   }
 
+  function drawQuestMark(px, py) {
+    var gx = Math.round(px - cam.x);
+    var gy = Math.round(py - cam.y) - 8 + (Math.sin(time * 4) > 0 ? 0 : 1);
+    pix(gx - 1, gy, 3, 1, C.paper);
+    pix(gx + 1, gy + 1, 1, 1, C.paper);
+    pix(gx, gy + 2, 1, 1, C.paper);
+    pix(gx, gy + 4, 1, 1, C.paper);
+  }
+
   function npcColor(kind) {
     if (kind === 'mira') return '#7ec8ff';
     if (kind === 'rex') return '#7ed67a';
@@ -386,7 +395,10 @@
     }
     buildings.forEach(drawBuilding);
     poles.forEach(drawPole);
-    npcs.forEach(function (e) { drawDot(e.x, e.y, npcColor(e.kind)); });
+    npcs.forEach(function (e) {
+      drawDot(e.x, e.y, npcColor(e.kind));
+      drawQuestMark(e.x, e.y);
+    });
     if (scene !== 'ride') drawDot(player.x, player.y, quest === 'have' || quest === 'build' ? C.paper : C.accent);
     drawVehicle();
     drawForcefield();
