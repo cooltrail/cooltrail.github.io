@@ -370,15 +370,20 @@
   }
 
   function drawUfo() {
-    var close = quest === 'build' ? 1 : quest === 'have' ? 0.55 : quest === 'saved' ? 0.15 : 0.25;
-    var gx = 200 + Math.sin(time * 0.4) * 40 - cam.x * 0.08;
-    var gy = quest === 'saved' ? 4 : 18 + (1 - close) * 16;
-    if (quest === 'saved') gx += 80;
-    pix(gx, gy + 4, 22, 6, '#8a94a8');
-    pix(gx + 6, gy, 10, 6, '#c8d2e0');
-    pix(gx + 8, gy + 2, 6, 3, quest === 'build' ? C.verm : C.accent);
-    if (quest === 'saved' || (quest === 'build' && lattice > 0.7)) {
-      pix(gx + 4, gy + 10, 14, 2, '#7ec8ff');
+    if (quest === 'idle') return;
+    var ships = quest === 'build' ? 3 : quest === 'saved' ? 1 : 2;
+    var i;
+    for (i = 0; i < ships; i++) {
+      var wx = 80 + i * 140 + Math.sin(time * 0.35 + i) * 24;
+      var wy = -18 - i * 6 + (quest === 'saved' ? -40 : 0);
+      var gx = wx - cam.x * 0.35;
+      var gy = wy - cam.y * 0.12 + 22;
+      if (gy > VH || gx > VW + 20 || gx < -30) continue;
+      pix(gx + 6, gy, 16, 5, '#6a7488');
+      pix(gx + 10, gy - 4, 8, 6, '#9aa8bc');
+      pix(gx + 12, gy - 2, 4, 3, quest === 'build' ? C.verm : '#7ec8ff');
+      pix(gx + 8, gy + 4, 12, 2, '#3a4458');
+      if (quest === 'build' && lattice > 0.55) pix(gx + 12, gy + 6, 4, 8, 'rgba(255,80,80,0.45)');
     }
   }
 
@@ -479,7 +484,7 @@
   }
 
   function drawVehicle() {
-    if (!ride.vehicle) return;
+    if (scene !== 'ride' || !ride.vehicle) return;
     var v = ride.vehicle;
     var gx = v.x - cam.x;
     var gy = v.y - cam.y;
@@ -698,6 +703,7 @@
     show(ui.pad, true);
     buildMap();
     bootEntities();
+    ride.vehicle = null;
     if (quest === 'saved') {
       lattice = 1;
     } else if (quest === 'have') {
