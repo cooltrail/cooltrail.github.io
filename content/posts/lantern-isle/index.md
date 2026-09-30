@@ -3,7 +3,7 @@ title = 'Callpole'
 date = '2026-09-30T15:24:00-07:00'
 draft = false
 author = '@blue749rabbit'
-description = 'A dusk city. Call a bus or a taxi. Get the blueprint to the base before the sky opens.'
+description = 'A dusk city. Call a bus or a taxi. Get the forcefield blueprint to the base and save the world.'
 tags = ['game', 'callpole']
 categories = ['games']
 +++
@@ -12,7 +12,7 @@ categories = ['games']
 
 <iframe class="isle-frame" src="/callpole/" title="Callpole" allow="autoplay"></iframe>
 
-Talk to **Mira** in the plaza. Take the blueprint to **Rex** at North Base. Blue poles call buses. Yellow poles call taxis.
+Talk to **Mira** in the plaza. Take the forcefield blueprint to **Rex** at North Base. They build it. The world stays. Blue poles call buses. Yellow poles call taxis.
 
 <style>
 .play-btn {

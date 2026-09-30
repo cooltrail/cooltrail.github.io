@@ -197,14 +197,14 @@
     if (quest === 'idle') {
       npc('mira').lines = [
         'Mira. Civic works. The clouds are not weather.',
-        'I have a blueprint for a Lattice. A sky fence.',
+        'I have a blueprint for a forcefield. Big enough to hold the world.',
         'The North Base can build it. Take this. Do not fold it.',
         'Call a bus or a taxi at a pole if your feet get bored.'
       ];
     } else if (quest === 'have') {
       npc('mira').lines = ['You still have it? North. The base. The poles if you want speed.'];
     } else {
-      npc('mira').lines = ['I felt it come up from here. Like a held breath.'];
+      npc('mira').lines = ['I felt it lock in. A whole sky of glass. We get to keep the world.'];
     }
     npc('dash').lines = [
       'Blue pole is a bus. Yellow pole is a taxi.',
@@ -213,21 +213,21 @@
     if (quest === 'have') {
       npc('rex').lines = [
         'You Mira\'s runner? Let me see that paper.',
-        'Copy that. We start the Lattice now. Stay on the pad.'
+        'Copy that. Forcefield coming up. Stay on the pad and watch the sky.'
       ];
     } else if (quest === 'idle') {
       npc('rex').lines = ['North Base. We are waiting on a blueprint from downtown. You are not it. Yet.'];
     } else {
-      npc('rex').lines = ['Lattice is live. Go home. Or do not. The meters still eat coins.'];
+      npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
-    npc('kit').lines = ['Lights in the clouds. Not stars. I cancelled my dinner.'];
+    npc('kit').lines = ['Lights in the clouds. Not stars. An invasion. I cancelled my dinner.'];
   }
 
   function questLabel() {
     if (quest === 'idle') return 'Find Mira · Plaza';
     if (quest === 'have') return 'Blueprint · North Base';
-    if (quest === 'build') return 'Lattice coming up';
-    return 'City saved';
+    if (quest === 'build') return 'Forcefield coming up';
+    return 'World saved';
   }
 
   function load() {
@@ -334,29 +334,52 @@
     if (Math.floor(time * 4) % 2 === 0) pix(gx + 5, gy - 14, 3, 2, lit);
   }
 
-  function drawLattice() {
+  function drawForcefield() {
     if (lattice <= 0) return;
-    var gx = 23 * TILE - cam.x;
-    var gy = 2 * TILE - cam.y - Math.floor(lattice * 28);
-    pix(gx + 6, gy + 20, 8, 4, C.shadow);
-    pix(gx + 8, gy, 4, 36, '#c5d0dc');
-    pix(gx + 2, gy, 16, 6, '#8ab4d8');
-    if (lattice > 0.6) {
-      ctx.strokeStyle = 'rgba(120, 200, 255,' + (0.35 + Math.sin(time * 6) * 0.15) + ')';
+    var ex = 24 * TILE - cam.x + 8;
+    var ey = 4 * TILE - cam.y + 8;
+    pix(ex - 4, ey + 10, 12, 4, C.shadow);
+    pix(ex, ey - 8, 4, 22, '#c5d0dc');
+    pix(ex - 6, ey - 10, 16, 6, '#8ab4d8');
+    pix(ex - 2, ey - 12, 8, 4, '#e7f4ff');
+    var r = 28 + lattice * 220;
+    var glow = 0.18 + lattice * 0.28 + Math.sin(time * 5) * 0.06;
+    ctx.save();
+    ctx.globalAlpha = glow;
+    ctx.strokeStyle = '#7ec8ff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(ex + 2, ey + 12, r, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.strokeStyle = '#d4f0ff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(ex + 2, ey + 12, r * 0.72, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(ex + 2, ey + 12, r * 0.45, Math.PI, 0, false);
+    ctx.stroke();
+    if (lattice > 0.35) {
+      ctx.globalAlpha = glow * 0.45;
+      ctx.fillStyle = '#7ec8ff';
       ctx.beginPath();
-      ctx.arc(gx + 10, gy + 4, 40 + lattice * 30, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.arc(ex + 2, ey + 12, r, Math.PI, 0, false);
+      ctx.fill();
     }
+    ctx.restore();
   }
 
   function drawUfo() {
-    if (quest === 'saved') return;
-    var close = quest === 'build' ? 1 : quest === 'have' ? 0.55 : 0.25;
+    var close = quest === 'build' ? 1 : quest === 'have' ? 0.55 : quest === 'saved' ? 0.15 : 0.25;
     var gx = 200 + Math.sin(time * 0.4) * 40 - cam.x * 0.08;
-    var gy = 18 + (1 - close) * 16;
+    var gy = quest === 'saved' ? 4 : 18 + (1 - close) * 16;
+    if (quest === 'saved') gx += 80;
     pix(gx, gy + 4, 22, 6, '#8a94a8');
     pix(gx + 6, gy, 10, 6, '#c8d2e0');
     pix(gx + 8, gy + 2, 6, 3, quest === 'build' ? C.verm : C.accent);
+    if (quest === 'saved' || (quest === 'build' && lattice > 0.7)) {
+      pix(gx + 4, gy + 10, 14, 2, '#7ec8ff');
+    }
   }
 
   var PFOX = {
@@ -475,7 +498,6 @@
     }
     poles.forEach(drawPole);
     buildings.forEach(drawBuilding);
-    drawLattice();
     var list = npcs.map(function (e) {
       return { y: e.y, draw: function () { drawPerson(e.kind, e.x - cam.x, e.y - cam.y); } };
     });
@@ -487,6 +509,7 @@
     list.forEach(function (e) { e.draw(); });
     drawVehicle();
     drawUfo();
+    drawForcefield();
     if (flash > 0) pix(0, 0, VW, VH, 'rgba(180,220,255,' + flash + ')');
   }
 
