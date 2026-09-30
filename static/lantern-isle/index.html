@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Lantern Isle</title>
+  <meta name="description" content="Walk a small festival island, talk to keepers, and light every lantern." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23d94a32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='16' fill='%23fff4d6'%3E*%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="frame">
+    <canvas id="game" width="384" height="216" aria-label="Lantern Isle"></canvas>
+
+    <div id="hud" class="hidden">
+      <div id="stamps" aria-label="Lanterns"></div>
+      <button id="mute" type="button" aria-label="Mute">Sound</button>
+    </div>
+
+    <div id="prompt" class="hidden"></div>
+
+    <div id="title" class="panel">
+      <p class="kicker">Festival games</p>
+      <h1>Lantern Isle</h1>
+      <p class="lead">A little island, four keepers, and every lantern waiting to be lit.</p>
+      <p class="hint">Arrows or WASD to walk · Space to talk or play</p>
+      <button id="start" type="button">Let’s go!</button>
+      <p class="home-link"><a href="https://cooltrail.github.io/">cooltrail.github.io</a></p>
+    </div>
+
+    <div id="dialog" class="panel hidden">
+      <p id="who" class="kicker"></p>
+      <p id="line"></p>
+      <p class="hint">Space or click</p>
+    </div>
+
+    <div id="card" class="panel hidden">
+      <p id="card-k" class="kicker"></p>
+      <h2 id="card-h"></h2>
+      <p id="card-p"></p>
+      <div class="row">
+        <button id="card-ok" type="button">Begin</button>
+        <button id="card-back" type="button">Back to the isle</button>
+      </div>
+    </div>
+
+    <div id="end" class="panel hidden">
+      <p class="kicker">The island remembers you</p>
+      <h1>Isle Champion</h1>
+      <p class="lead">Four lanterns, four keepers, one quiet night on the water.</p>
+      <button id="again" type="button">Walk it again</button>
+    </div>
+
+    <div id="pad" class="hidden" aria-hidden="true">
+      <div class="dpad">
+        <button data-dir="up" type="button">▲</button>
+        <div class="mid">
+          <button data-dir="left" type="button">◀</button>
+          <button data-dir="right" type="button">▶</button>
+        </div>
+        <button data-dir="down" type="button">▼</button>
+      </div>
+      <button id="act" type="button">●</button>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

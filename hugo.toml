@@ -233,6 +233,14 @@ enableEmoji = true
     url = "/categories/"
     title = ""
     weight = 3
+  [[menu.main]]
+    identifier = "lantern-isle"
+    pre = ""
+    post = ""
+    name = "Lantern Isle"
+    url = "/lantern-isle/"
+    title = "Play Lantern Isle"
+    weight = 4
 
 # Markup related config
 [markup]

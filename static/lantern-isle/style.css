@@ -1,0 +1,245 @@
+:root {
+  --ink: #3a2418;
+  --paper: #fff4d6;
+  --mist: #b08968;
+  --accent: #f5c542;
+  --vermilion: #d94a32;
+  --leaf: #3cb371;
+  --deep: #7a2e22;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #16343a;
+  color: var(--ink);
+  font-family: "M PLUS Rounded 1c", "Nunito", "Segoe UI", sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#frame {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 20%, #2a6b74 0%, #16343a 55%, #0e2428 100%);
+}
+
+#game {
+  width: min(100vw, calc(100dvh * 16 / 9));
+  height: min(100dvh, calc(100vw * 9 / 16));
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #5dbb63;
+  box-shadow: 0 12px 0 #0e2428, 0 22px 40px rgba(0, 0, 0, 0.35);
+  border: 4px solid #fff4d6;
+  border-radius: 6px;
+}
+
+#hud {
+  position: absolute;
+  top: max(0.55rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100vw, calc(100dvh * 16 / 9));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.9rem;
+  pointer-events: none;
+}
+
+#stamps {
+  display: flex;
+  gap: 0.4rem;
+  background: #fff4d6;
+  border: 3px solid #3a2418;
+  border-radius: 999px;
+  padding: 0.28rem 0.5rem;
+}
+
+.stamp {
+  width: 0.95rem;
+  height: 1.15rem;
+  border-radius: 0.2rem 0.2rem 0.35rem 0.35rem;
+  border: 2px solid #3a2418;
+  background: #c4b08a;
+  opacity: 0.55;
+}
+
+.stamp.on {
+  background: #f5c542;
+  opacity: 1;
+  box-shadow: 0 0 0 2px #d94a32 inset;
+}
+
+#mute {
+  pointer-events: auto;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 3px solid #3a2418;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  cursor: pointer;
+}
+
+#prompt {
+  position: absolute;
+  bottom: 24%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper);
+  color: var(--ink);
+  border: 3px solid #3a2418;
+  border-radius: 999px;
+  padding: 0.28rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, 92vw);
+  background: var(--paper);
+  color: var(--ink);
+  border: 4px solid #3a2418;
+  border-radius: 1.15rem;
+  padding: 1.15rem 1.2rem 1.2rem;
+  text-align: center;
+  box-shadow: 0 6px 0 #d94a32;
+}
+
+.panel h1, .panel h2 {
+  margin: 0.1rem 0 0.4rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--vermilion);
+}
+
+.panel h1 { font-size: 2.35rem; }
+
+.kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #e07a2a;
+}
+
+.lead, #line, #card-p {
+  margin: 0.25rem 0 0.85rem;
+  color: #5a3a28;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.hint {
+  margin: 0 0 0.85rem;
+  color: var(--mist);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.home-link {
+  margin: 0.85rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.home-link a {
+  color: #e07a2a;
+  text-decoration: none;
+}
+
+.row {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: inherit;
+  font-weight: 800;
+  background: var(--vermilion);
+  color: var(--paper);
+  border: 3px solid #3a2418;
+  border-radius: 999px;
+  padding: 0.42rem 1rem;
+  cursor: pointer;
+}
+
+#card-back {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+#dialog {
+  top: auto;
+  bottom: 11%;
+  transform: translate(-50%, 0);
+  text-align: left;
+  border-radius: 1.4rem 1.4rem 1.4rem 0.4rem;
+}
+
+#dialog .hint {
+  margin: 0;
+  text-align: right;
+}
+
+.hidden { display: none !important; }
+
+#pad {
+  position: absolute;
+  inset: auto 0 0.4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 0.8rem 0.4rem;
+  pointer-events: none;
+}
+
+#pad button {
+  pointer-events: auto;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 244, 214, 0.86);
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mid { display: flex; gap: 1.6rem; }
+
+#act {
+  width: 3.6rem !important;
+  height: 3.6rem !important;
+  border-radius: 999px !important;
+  background: var(--vermilion) !important;
+  color: var(--paper);
+}
+
+@media (pointer: fine) {
+  #pad { display: none !important; }
+}
