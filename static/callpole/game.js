@@ -262,12 +262,12 @@
 
   function resetPieces() {
     pieces = [
-      { id: 1, place: 'city', x: 17 * TILE, y: 21 * TILE, got: false },
+      { id: 1, place: 'city', x: 18 * TILE, y: 21 * TILE, got: false },
       { id: 2, place: 'city', x: 40 * TILE, y: 19 * TILE, got: false },
-      { id: 3, place: 'city', x: 5 * TILE, y: 13 * TILE, got: false },
-      { id: 4, place: 'city', x: 16 * TILE, y: 6 * TILE, got: false },
-      { id: 5, place: 'mall', x: 24 * TILE, y: 12 * TILE, got: false },
-      { id: 6, place: 'city', x: 48 * TILE, y: 27 * TILE, got: false }
+      { id: 3, place: 'city', x: 9 * TILE, y: 13 * TILE, got: false },
+      { id: 4, place: 'city', x: 16 * TILE, y: 7 * TILE, got: false },
+      { id: 5, place: 'mall', x: 32 * TILE, y: 16 * TILE, got: false },
+      { id: 6, place: 'city', x: 50 * TILE, y: 27 * TILE, got: false }
     ];
   }
 
