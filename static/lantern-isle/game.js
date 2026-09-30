@@ -4,9 +4,11 @@
   var VW = 384;
   var VH = 216;
   var TILE = 16;
-  var COLS = 48;
-  var ROWS = 36;
-  var SAVE = 'callpole';
+  var COLS = 56;
+  var ROWS = 44;
+  var MCOLS = 36;
+  var MROWS = 22;
+  var SAVE = 'callpole-v3';
 
   var canvas = document.getElementById('game');
   var ctx = canvas.getContext('2d');
@@ -63,9 +65,16 @@
   var cam = { x: 0, y: 0, tx: 0, ty: 0 };
   var map = [];
   var buildings = [];
+  var cityMap = [];
+  var mallMap = [];
+  var cityBuildings = [];
+  var mallBuildings = [];
+  var place = 'city';
+  var cityReturn = { x: 0, y: 0 };
   var player = { x: 0, y: 0, vx: 0, vy: 0, dir: 0, walk: 0 };
   var npcs = [];
   var poles = [];
+  var pieces = [];
   var near = null;
   var talk = { lines: [], i: 0, who: '', after: null };
   var quest = 'idle';
@@ -90,7 +99,9 @@
   function tileAt(px, py) {
     var tx = Math.floor(px / TILE);
     var ty = Math.floor(py / TILE);
-    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return 3;
+    var maxC = map[0] ? map[0].length : COLS;
+    var maxR = map.length || ROWS;
+    if (tx < 0 || ty < 0 || tx >= maxC || ty >= maxR) return 3;
     return map[ty][tx];
   }
 
@@ -104,19 +115,31 @@
   }
 
   function fill(x, y, w, h, id) {
+    var maxC = map[0].length;
+    var maxR = map.length;
     var i, j;
     for (j = 0; j < h; j++) {
       for (i = 0; i < w; i++) {
         var xx = x + i;
         var yy = y + j;
-        if (xx >= 0 && yy >= 0 && xx < COLS && yy < ROWS) map[yy][xx] = id;
+        if (xx >= 0 && yy >= 0 && xx < maxC && yy < maxR) map[yy][xx] = id;
       }
     }
   }
 
-  function hash(x, y) {
-    var n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-    return n - Math.floor(n);
+  function allocMap(c, r) {
+    var x, y, m = [];
+    for (y = 0; y < r; y++) {
+      m[y] = [];
+      for (x = 0; x < c; x++) m[y][x] = 0;
+    }
+    return m;
+  }
+
+  function usePlace(p) {
+    place = p;
+    map = p === 'mall' ? mallMap : cityMap;
+    buildings = p === 'mall' ? mallBuildings : cityBuildings;
   }
 
   function addBuilding(x, y, w, h) {
@@ -125,36 +148,45 @@
   }
 
   function buildMap() {
-    var x, y;
-    map = [];
+    map = allocMap(COLS, ROWS);
     buildings = [];
-    for (y = 0; y < ROWS; y++) {
-      map[y] = [];
-      for (x = 0; x < COLS; x++) map[y][x] = 0;
-    }
     fill(0, 8, COLS, 3, 1);
     fill(0, 16, COLS, 3, 1);
     fill(0, 24, COLS, 3, 1);
     fill(10, 0, 3, ROWS, 1);
-    fill(22, 0, 3, ROWS, 1);
-    fill(34, 0, 3, ROWS, 1);
+    fill(22, 0, 3, 27, 1);
+    fill(34, 0, 3, 27, 1);
     fill(14, 19, 7, 4, 4);
     addBuilding(1, 1, 8, 6);
     addBuilding(14, 1, 7, 6);
     addBuilding(26, 1, 7, 6);
     addBuilding(38, 1, 9, 6);
+    addBuilding(48, 1, 7, 6);
     addBuilding(1, 12, 8, 3);
     addBuilding(14, 12, 7, 3);
     addBuilding(26, 12, 7, 3);
     addBuilding(38, 12, 9, 3);
+    addBuilding(48, 12, 7, 3);
     addBuilding(1, 20, 8, 3);
     addBuilding(26, 20, 7, 3);
     addBuilding(38, 20, 9, 3);
-    addBuilding(1, 28, 8, 7);
-    addBuilding(14, 28, 7, 7);
-    addBuilding(26, 28, 7, 7);
-    addBuilding(38, 28, 9, 7);
-    addBuilding(14, 4, 3, 2);
+    addBuilding(48, 20, 7, 3);
+    addBuilding(1, 28, 8, 15);
+    addBuilding(14, 28, 41, 15);
+    cityMap = map;
+    cityBuildings = buildings;
+    map = allocMap(MCOLS, MROWS);
+    buildings = [];
+    addBuilding(1, 1, 8, 5);
+    addBuilding(12, 1, 10, 5);
+    addBuilding(25, 1, 10, 5);
+    addBuilding(1, 8, 6, 6);
+    addBuilding(28, 8, 7, 6);
+    addBuilding(1, 16, 8, 5);
+    addBuilding(26, 16, 9, 5);
+    mallMap = map;
+    mallBuildings = buildings;
+    usePlace('city');
   }
 
   function bootEntities() {
@@ -162,20 +194,39 @@
     player.y = 18 * TILE;
     player.dir = 0;
     npcs = [
-      { id: 'mira', name: 'Mira', kind: 'mira', x: 16 * TILE, y: 20 * TILE, lines: [] },
-      { id: 'dash', name: 'Dash', kind: 'dash', x: 12 * TILE, y: 17 * TILE, lines: [] },
-      { id: 'rex', name: 'Rex', kind: 'rex', x: 24 * TILE, y: 3 * TILE, lines: [] },
-      { id: 'kit', name: 'Kit', kind: 'kit', x: 36 * TILE, y: 17 * TILE, lines: [] }
+      { id: 'mira', name: 'Mira', kind: 'mira', place: 'city', x: 16 * TILE, y: 20 * TILE, lines: [] },
+      { id: 'dash', name: 'Dash', kind: 'dash', place: 'city', x: 12 * TILE, y: 17 * TILE, lines: [] },
+      { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 24 * TILE, y: 3 * TILE, lines: [] },
+      { id: 'kit', name: 'Kit', kind: 'kit', place: 'city', x: 36 * TILE, y: 17 * TILE, lines: [] },
+      { id: 'jan', name: 'Jan', kind: 'jan', place: 'mall', x: 18 * TILE, y: 10 * TILE, lines: [] }
     ];
     poles = [
       { id: 'bus-plaza', kind: 'bus', name: 'Plaza', x: 12 * TILE, y: 18 * TILE },
       { id: 'bus-east', kind: 'bus', name: 'East Side', x: 36 * TILE, y: 18 * TILE },
       { id: 'bus-base', kind: 'bus', name: 'North Base', x: 22 * TILE, y: 6 * TILE },
+      { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 22 * TILE, y: 26 * TILE },
       { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 18 * TILE },
-      { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 24 * TILE, y: 26 * TILE },
-      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 26 * TILE, y: 6 * TILE }
+      { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 26 * TILE },
+      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 26 * TILE, y: 6 * TILE },
+      { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 34 * TILE, y: 26 * TILE }
     ];
+    if (!pieces.length) resetPieces();
     refreshLines();
+  }
+
+  function resetPieces() {
+    pieces = [
+      { id: 1, place: 'city', x: 17 * TILE, y: 21 * TILE, got: false },
+      { id: 2, place: 'city', x: 40 * TILE, y: 19 * TILE, got: false },
+      { id: 3, place: 'city', x: 5 * TILE, y: 13 * TILE, got: false },
+      { id: 4, place: 'city', x: 16 * TILE, y: 6 * TILE, got: false },
+      { id: 5, place: 'mall', x: 20 * TILE, y: 8 * TILE, got: false },
+      { id: 6, place: 'city', x: 48 * TILE, y: 27 * TILE, got: false }
+    ];
+  }
+
+  function pieceCount() {
+    return pieces.filter(function (p) { return p.got; }).length;
   }
 
   function npc(id) {
@@ -185,38 +236,46 @@
   }
 
   function refreshLines() {
+    var n = pieceCount();
     if (quest === 'idle') {
       npc('mira').lines = [
         'Mira. Civic works. The clouds are not weather.',
-        'I have a blueprint for a forcefield. Big enough to hold the world.',
-        'The North Base can build it. Take this. Do not fold it.',
-        'Call a bus or a taxi at a pole if your feet get bored.'
+        'The forcefield blueprint was six pieces. I lost every one.',
+        'Find them. City, alleys, the mall down south. Then the North Base can build it.'
       ];
+    } else if (quest === 'hunt') {
+      npc('mira').lines = n >= 6
+        ? ['That is all six. Rex at North Base. Do not stop for snacks.']
+        : ['That is ' + n + ' of 6. Keep looking. One is in the mall. Big gray block. Doors on the front.'];
     } else if (quest === 'have') {
-      npc('mira').lines = ['You still have it? North. The base. The poles if you want speed.'];
+      npc('mira').lines = ['You still have the set? North. The base. Poles if you want speed.'];
     } else {
       npc('mira').lines = ['I felt it lock in. A whole sky of glass. We get to keep the world.'];
     }
     npc('dash').lines = [
       'Blue pole is a bus. Yellow pole is a taxi.',
-      'Stand close. Call. Pick a stop. Try not to miss the last one.'
+      'Mall has its own stop now. Giant gray south of here. Space at the doors.'
     ];
-    if (quest === 'have') {
+    if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
       npc('rex').lines = [
-        'You Mira\'s runner? Let me see that paper.',
+        'Six pieces. That is the set.',
         'Copy that. Forcefield coming up. Stay on the pad and watch the sky.'
       ];
-    } else if (quest === 'idle') {
-      npc('rex').lines = ['North Base. We are waiting on a blueprint from downtown. You are not it. Yet.'];
+    } else if (quest === 'idle' || quest === 'hunt') {
+      npc('rex').lines = ['North Base. We need all six blueprint pieces. You have ' + n + '.'];
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
-    npc('kit').lines = ['Lights in the clouds. Not stars. An invasion. I cancelled my dinner.'];
+    npc('kit').lines = ['The mall ate a scrap of paper. South. Huge gray. Stand at the front gates and hit Space.'];
+    npc('jan').lines = n >= 6 || pieces[4] && pieces[4].got
+      ? ['Food court is just gray too. You already took the scrap.']
+      : ['Paper on the floor by the east shops. I thought it was a receipt.'];
   }
 
   function questLabel() {
     if (quest === 'idle') return 'Find Mira · Plaza';
-    if (quest === 'have') return 'Blueprint · North Base';
+    if (quest === 'hunt') return 'Pieces ' + pieceCount() + ' / 6';
+    if (quest === 'have') return 'All 6 · North Base';
     if (quest === 'build') return 'Forcefield coming up';
     return 'World saved';
   }
@@ -226,12 +285,21 @@
       var d = JSON.parse(localStorage.getItem(SAVE) || '{}');
       if (d.quest) quest = d.quest;
       muted = !!d.muted;
-      if (quest === 'build') quest = 'have';
+      if (d.pieces && d.pieces.length === 6) {
+        resetPieces();
+        d.pieces.forEach(function (g, i) { if (pieces[i]) pieces[i].got = !!g; });
+      }
+      if (quest === 'build') quest = pieceCount() >= 6 ? 'have' : 'hunt';
+      if (quest === 'have' && pieceCount() < 6) quest = 'hunt';
     } catch (e) {}
   }
 
   function save() {
-    localStorage.setItem(SAVE, JSON.stringify({ quest: quest, muted: muted }));
+    localStorage.setItem(SAVE, JSON.stringify({
+      quest: quest,
+      muted: muted,
+      pieces: pieces.map(function (p) { return p.got; })
+    }));
   }
 
   function drawHud() {
@@ -266,8 +334,8 @@
   }
 
   function isRoad(tx, ty) {
-    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
-    return map[ty][tx] === 1;
+    if (!cityMap[ty] || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
+    return cityMap[ty][tx] === 1;
   }
 
   function nearestRoad(px, py) {
@@ -374,6 +442,7 @@
     if (kind === 'mira') return '#7ec8ff';
     if (kind === 'rex') return '#7ed67a';
     if (kind === 'dash') return C.bus;
+    if (kind === 'jan') return '#e6a0d0';
     return '#e07a2a';
   }
 
@@ -389,19 +458,33 @@
 
   function drawWorld() {
     var x, y;
-    pix(0, 0, VW, VH, C.night);
-    for (y = 0; y < ROWS; y++) {
-      for (x = 0; x < COLS; x++) drawTile(map[y][x], x * TILE, y * TILE);
+    var maxC = map[0].length;
+    var maxR = map.length;
+    pix(0, 0, VW, VH, place === 'mall' ? '#2a2a2e' : C.night);
+    for (y = 0; y < maxR; y++) {
+      for (x = 0; x < maxC; x++) drawTile(map[y][x], x * TILE, y * TILE);
     }
     buildings.forEach(drawBuilding);
-    poles.forEach(drawPole);
+    if (place === 'city') {
+      pix(33 * TILE - cam.x, 28 * TILE - cam.y, 8, 4, '#555555');
+      poles.forEach(drawPole);
+    } else {
+      pix(16 * TILE - cam.x, (MROWS - 1) * TILE - cam.y, 8, TILE, '#555555');
+    }
     npcs.forEach(function (e) {
+      if (e.place !== place) return;
       drawDot(e.x, e.y, npcColor(e.kind));
       drawQuestMark(e.x, e.y);
     });
-    if (scene !== 'ride') drawDot(player.x, player.y, quest === 'have' || quest === 'build' ? C.paper : C.accent);
+    pieces.forEach(function (p) {
+      if (p.got || p.place !== place) return;
+      if (Math.floor(time * 6) % 2 === 0) drawDot(p.x, p.y, C.paper);
+    });
+    if (scene !== 'ride') {
+      drawDot(player.x, player.y, quest === 'have' || quest === 'build' ? C.paper : C.accent);
+    }
     drawVehicle();
-    drawForcefield();
+    if (place === 'city') drawForcefield();
     if (flash > 0) pix(0, 0, VW, VH, 'rgba(180,220,255,' + flash + ')');
   }
 
@@ -424,10 +507,10 @@
     var ny = player.y + player.vy * dt;
     if (!blocked(nx, player.y, 1, 1)) player.x = nx;
     if (!blocked(player.x, ny, 1, 1)) player.y = ny;
-    player.x = clamp(player.x, 0, COLS * TILE - 1);
-    player.y = clamp(player.y, 0, ROWS * TILE - 1);
-    cam.tx = clamp(player.x - VW / 2, 0, COLS * TILE - VW);
-    cam.ty = clamp(player.y - VH / 2, 0, ROWS * TILE - VH);
+    player.x = clamp(player.x, 0, map[0].length * TILE - 1);
+    player.y = clamp(player.y, 0, map.length * TILE - 1);
+    cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
+    cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, map.length * TILE - VH));
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
     cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
 
@@ -450,13 +533,27 @@
     var i, e, d;
     for (i = 0; i < npcs.length; i++) {
       e = npcs[i];
+      if (e.place !== place) continue;
       d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
       if (d < 18) near = { kind: 'npc', e: e, text: 'Talk · ' + e.name };
     }
-    for (i = 0; i < poles.length; i++) {
-      e = poles[i];
+    if (place === 'city') {
+      for (i = 0; i < poles.length; i++) {
+        e = poles[i];
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 16) near = { kind: 'pole', e: e, text: 'Call · ' + (e.kind === 'bus' ? 'Bus' : 'Taxi') + ' · ' + e.name };
+      }
+      if (player.x > 31 * TILE && player.x < 37 * TILE && player.y > 25 * TILE && player.y < 29 * TILE) {
+        near = { kind: 'mall', text: 'Enter · Mall' };
+      }
+    } else if (player.y > (MROWS - 3) * TILE && player.x > 14 * TILE && player.x < 26 * TILE) {
+      near = { kind: 'exit', text: 'Exit · Mall' };
+    }
+    for (i = 0; i < pieces.length; i++) {
+      e = pieces[i];
+      if (e.got || e.place !== place) continue;
       d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-      if (d < 16) near = { kind: 'pole', e: e, text: 'Call · ' + (e.kind === 'bus' ? 'Bus' : 'Taxi') + ' · ' + e.name };
+      if (d < 12) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
     }
     if (near) {
       ui.prompt.textContent = near.text;
@@ -465,8 +562,44 @@
 
     if (actEdge && near && !interactLock) {
       if (near.kind === 'npc') openTalk(near.e);
-      else openPole(near.e);
+      else if (near.kind === 'pole') openPole(near.e);
+      else if (near.kind === 'mall') enterMall();
+      else if (near.kind === 'exit') exitMall();
+      else if (near.kind === 'piece') takePiece(near.e);
     }
+  }
+
+  function takePiece(p) {
+    p.got = true;
+    if (pieceCount() >= 6) quest = 'have';
+    refreshLines();
+    save();
+    drawHud();
+    interactLock = true;
+    beep(880, 0.1, 0.05, 'sine');
+  }
+
+  function enterMall() {
+    cityReturn = { x: 33 * TILE + 4, y: 26 * TILE };
+    usePlace('mall');
+    player.x = 18 * TILE;
+    player.y = (MROWS - 3) * TILE;
+    cam.x = clamp(player.x - VW / 2, 0, Math.max(0, MCOLS * TILE - VW));
+    cam.y = clamp(player.y - VH / 2, 0, Math.max(0, MROWS * TILE - VH));
+    cam.tx = cam.x;
+    cam.ty = cam.y;
+    interactLock = true;
+    actEdge = false;
+    beep(300, 0.08, 0.04);
+  }
+
+  function exitMall() {
+    usePlace('city');
+    player.x = cityReturn.x;
+    player.y = cityReturn.y;
+    interactLock = true;
+    actEdge = false;
+    beep(260, 0.08, 0.04);
   }
 
   function openTalk(e) {
@@ -476,13 +609,13 @@
     talk.i = 0;
     talk.after = function () {
       if (e.id === 'mira' && quest === 'idle') {
-        quest = 'have';
+        quest = 'hunt';
         refreshLines();
         save();
         drawHud();
         beep(880, 0.1, 0.05, 'sine');
       }
-      if (e.id === 'rex' && quest === 'have') {
+      if (e.id === 'rex' && (quest === 'have' || pieceCount() >= 6)) {
         quest = 'build';
         lattice = 0.05;
         save();
@@ -627,6 +760,7 @@
     show(ui.pad, true);
     buildMap();
     bootEntities();
+    usePlace('city');
     ride.vehicle = null;
     if (quest === 'saved') {
       lattice = 1;
@@ -693,6 +827,7 @@
   ui.again.addEventListener('click', function () {
     quest = 'idle';
     lattice = 0;
+    resetPieces();
     save();
     begin();
   });
