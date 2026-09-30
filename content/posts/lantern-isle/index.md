@@ -12,7 +12,7 @@ categories = ['games']
 
 <iframe class="isle-frame" src="/callpole/" title="Callpole" allow="autoplay"></iframe>
 
-Talk to **Mira** in the plaza. Find all **6** lost blueprint pieces. One is inside the **mall** (south, huge gray block — Space at the front doors). Then take them to **Rex** at North Base.
+Talk to **Mira** in the plaza. Find all **6** lost blueprint pieces. One is inside the huge **mall** (four doors, north south east west — Space at any gate). People walk the streets. Then take the set to **Rex** at North Base.
 
 <style>
 .play-btn {

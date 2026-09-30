@@ -4,10 +4,12 @@
   var VW = 384;
   var VH = 216;
   var TILE = 16;
-  var COLS = 56;
-  var ROWS = 44;
-  var MCOLS = 36;
-  var MROWS = 22;
+  var COLS = 62;
+  var ROWS = 46;
+  var MCOLS = 48;
+  var MROWS = 32;
+  var CHAR_W = 8;
+  var CHAR_H = 10;
   var SAVE = 'callpole-v3';
 
   var canvas = document.getElementById('game');
@@ -75,6 +77,8 @@
   var npcs = [];
   var poles = [];
   var pieces = [];
+  var walkers = [];
+  var mallDoors = [];
   var near = null;
   var talk = { lines: [], i: 0, who: '', after: null };
   var quest = 'idle';
@@ -156,6 +160,7 @@
     fill(10, 0, 3, ROWS, 1);
     fill(22, 0, 3, 27, 1);
     fill(34, 0, 3, 27, 1);
+    fill(56, 0, 3, ROWS, 1);
     fill(14, 19, 7, 4, 4);
     addBuilding(1, 1, 8, 6);
     addBuilding(14, 1, 7, 6);
@@ -177,13 +182,14 @@
     cityBuildings = buildings;
     map = allocMap(MCOLS, MROWS);
     buildings = [];
-    addBuilding(1, 1, 8, 5);
-    addBuilding(12, 1, 10, 5);
-    addBuilding(25, 1, 10, 5);
-    addBuilding(1, 8, 6, 6);
-    addBuilding(28, 8, 7, 6);
-    addBuilding(1, 16, 8, 5);
-    addBuilding(26, 16, 9, 5);
+    addBuilding(4, 4, 10, 6);
+    addBuilding(18, 4, 12, 6);
+    addBuilding(34, 4, 10, 6);
+    addBuilding(4, 14, 8, 6);
+    addBuilding(36, 14, 8, 6);
+    addBuilding(4, 24, 10, 5);
+    addBuilding(18, 24, 12, 5);
+    addBuilding(34, 24, 10, 5);
     mallMap = map;
     mallBuildings = buildings;
     usePlace('city');
@@ -205,13 +211,53 @@
       { id: 'bus-east', kind: 'bus', name: 'East Side', x: 36 * TILE, y: 18 * TILE },
       { id: 'bus-base', kind: 'bus', name: 'North Base', x: 22 * TILE, y: 6 * TILE },
       { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 22 * TILE, y: 26 * TILE },
+      { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 56 * TILE, y: 34 * TILE },
       { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 18 * TILE },
       { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 26 * TILE },
       { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 26 * TILE, y: 6 * TILE },
       { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 34 * TILE, y: 26 * TILE }
     ];
+    mallDoors = [
+      { id: 'n', ox: 32, oy: 27, ow: 4, oh: 2, ix: 20, iy: 0, iw: 8, ih: 2, sx: 22, sy: 2, outX: 33, outY: 26 },
+      { id: 's', ox: 32, oy: 43, ow: 4, oh: 2, ix: 20, iy: 30, iw: 8, ih: 2, sx: 22, sy: 29, outX: 33, outY: 43 },
+      { id: 'w', ox: 13, oy: 33, ow: 2, oh: 4, ix: 0, iy: 13, iw: 2, ih: 6, sx: 2, sy: 16, outX: 12, outY: 34 },
+      { id: 'e', ox: 55, oy: 33, ow: 2, oh: 4, ix: 46, iy: 13, iw: 2, ih: 6, sx: 44, sy: 16, outX: 55, outY: 34 }
+    ];
+    bootWalkers();
     if (!pieces.length) resetPieces();
     refreshLines();
+  }
+
+  function bootWalkers() {
+    var colors = ['#c4b8a8', '#8aa0b4', '#b48a8a', '#9aa88a', '#c4a070', '#7a8aa0'];
+    walkers = [];
+    var spots = [
+      [18, 18], [28, 18], [8, 18], [40, 18], [16, 10], [30, 10],
+      [12, 26], [40, 26], [50, 18], [6, 26], [20, 6], [48, 27]
+    ];
+    var mallSpots = [
+      [16, 12], [24, 16], [32, 12], [20, 20], [16, 8], [12, 18], [32, 18], [16, 22]
+    ];
+    spots.forEach(function (s, i) {
+      walkers.push({
+        place: 'city',
+        x: s[0] * TILE,
+        y: s[1] * TILE,
+        dir: i % 4,
+        wait: Math.random(),
+        color: colors[i % colors.length]
+      });
+    });
+    mallSpots.forEach(function (s, i) {
+      walkers.push({
+        place: 'mall',
+        x: s[0] * TILE,
+        y: s[1] * TILE,
+        dir: (i + 1) % 4,
+        wait: Math.random(),
+        color: colors[(i + 2) % colors.length]
+      });
+    });
   }
 
   function resetPieces() {
@@ -220,7 +266,7 @@
       { id: 2, place: 'city', x: 40 * TILE, y: 19 * TILE, got: false },
       { id: 3, place: 'city', x: 5 * TILE, y: 13 * TILE, got: false },
       { id: 4, place: 'city', x: 16 * TILE, y: 6 * TILE, got: false },
-      { id: 5, place: 'mall', x: 20 * TILE, y: 8 * TILE, got: false },
+      { id: 5, place: 'mall', x: 24 * TILE, y: 12 * TILE, got: false },
       { id: 6, place: 'city', x: 48 * TILE, y: 27 * TILE, got: false }
     ];
   }
@@ -246,7 +292,7 @@
     } else if (quest === 'hunt') {
       npc('mira').lines = n >= 6
         ? ['That is all six. Rex at North Base. Do not stop for snacks.']
-        : ['That is ' + n + ' of 6. Keep looking. One is in the mall. Big gray block. Doors on the front.'];
+        : ['That is ' + n + ' of 6. Keep looking. One is in the mall. Huge gray block. Four doors around it.'];
     } else if (quest === 'have') {
       npc('mira').lines = ['You still have the set? North. The base. Poles if you want speed.'];
     } else {
@@ -254,7 +300,7 @@
     }
     npc('dash').lines = [
       'Blue pole is a bus. Yellow pole is a taxi.',
-      'Mall has its own stop now. Giant gray south of here. Space at the doors.'
+      'Mall has four doors. North, south, east, west. Space at any of them.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
       npc('rex').lines = [
@@ -266,7 +312,7 @@
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
-    npc('kit').lines = ['The mall ate a scrap of paper. South. Huge gray. Stand at the front gates and hit Space.'];
+    npc('kit').lines = ['The mall ate a scrap of paper. Huge gray south. Four doors. Space at any gate.'];
     npc('jan').lines = n >= 6 || pieces[4] && pieces[4].got
       ? ['Food court is just gray too. You already took the scrap.']
       : ['Paper on the floor by the east shops. I thought it was a receipt.'];
@@ -425,13 +471,16 @@
     ctx.stroke();
   }
 
-  function drawDot(px, py, color) {
-    pix(px - cam.x, py - cam.y, 1, 1, color);
+  function drawChar(px, py, body) {
+    var gx = Math.round(px - cam.x);
+    var gy = Math.round(py - cam.y);
+    pix(gx + 1, gy, 6, 4, C.skin);
+    pix(gx, gy + 4, CHAR_W, 6, body);
   }
 
   function drawQuestMark(px, py) {
-    var gx = Math.round(px - cam.x);
-    var gy = Math.round(py - cam.y) - 8 + (Math.sin(time * 4) > 0 ? 0 : 1);
+    var gx = Math.round(px - cam.x) + 2;
+    var gy = Math.round(py - cam.y) - 7 + (Math.sin(time * 4) > 0 ? 0 : 1);
     pix(gx - 1, gy, 3, 1, C.paper);
     pix(gx + 1, gy + 1, 1, 1, C.paper);
     pix(gx, gy + 2, 1, 1, C.paper);
@@ -466,22 +515,36 @@
     }
     buildings.forEach(drawBuilding);
     if (place === 'city') {
-      pix(33 * TILE - cam.x, 28 * TILE - cam.y, 8, 4, '#555555');
+      pix(32 * TILE - cam.x, 28 * TILE - cam.y, 4 * TILE, TILE, '#555555');
+      pix(32 * TILE - cam.x, 42 * TILE - cam.y, 4 * TILE, TILE, '#555555');
+      pix(14 * TILE - cam.x, 33 * TILE - cam.y, TILE, 4 * TILE, '#555555');
+      pix(54 * TILE - cam.x, 33 * TILE - cam.y, TILE, 4 * TILE, '#555555');
+      mallDoors.forEach(function (d) {
+        pix(d.ox * TILE - cam.x, d.oy * TILE - cam.y, d.ow * TILE, d.oh * TILE, '#555555');
+      });
       poles.forEach(drawPole);
     } else {
-      pix(16 * TILE - cam.x, (MROWS - 1) * TILE - cam.y, 8, TILE, '#555555');
+      pix(20 * TILE - cam.x, 0 - cam.y, 8 * TILE, 4, '#555555');
+      pix(20 * TILE - cam.x, (MROWS - 1) * TILE - cam.y, 8 * TILE, TILE, '#555555');
+      pix(0 - cam.x, 13 * TILE - cam.y, 4, 6 * TILE, '#555555');
+      pix((MCOLS - 1) * TILE - cam.x, 13 * TILE - cam.y, TILE, 6 * TILE, '#555555');
     }
+    walkers.forEach(function (w) {
+      if (w.place === place) drawChar(w.x, w.y, w.color);
+    });
     npcs.forEach(function (e) {
       if (e.place !== place) return;
-      drawDot(e.x, e.y, npcColor(e.kind));
+      drawChar(e.x, e.y, npcColor(e.kind));
       drawQuestMark(e.x, e.y);
     });
     pieces.forEach(function (p) {
       if (p.got || p.place !== place) return;
-      if (Math.floor(time * 6) % 2 === 0) drawDot(p.x, p.y, C.paper);
+      if (Math.floor(time * 6) % 2 === 0) {
+        pix(p.x - cam.x, p.y - cam.y, 3, 3, C.paper);
+      }
     });
     if (scene !== 'ride') {
-      drawDot(player.x, player.y, quest === 'have' || quest === 'build' ? C.paper : C.accent);
+      drawChar(player.x, player.y, quest === 'have' || quest === 'build' ? C.paper : C.accent);
     }
     drawVehicle();
     if (place === 'city') drawForcefield();
@@ -505,14 +568,15 @@
     player.walk = !!(player.vx || player.vy);
     var nx = player.x + player.vx * dt;
     var ny = player.y + player.vy * dt;
-    if (!blocked(nx, player.y, 1, 1)) player.x = nx;
-    if (!blocked(player.x, ny, 1, 1)) player.y = ny;
-    player.x = clamp(player.x, 0, map[0].length * TILE - 1);
-    player.y = clamp(player.y, 0, map.length * TILE - 1);
+    if (!blocked(nx, player.y, CHAR_W, CHAR_H)) player.x = nx;
+    if (!blocked(player.x, ny, CHAR_W, CHAR_H)) player.y = ny;
+    player.x = clamp(player.x, 0, map[0].length * TILE - CHAR_W);
+    player.y = clamp(player.y, 0, map.length * TILE - CHAR_H);
     cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
     cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, map.length * TILE - VH));
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
     cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
+    updateWalkers(dt);
 
     if (quest === 'build') {
       lattice = Math.min(1, lattice + dt * 0.35);
@@ -535,25 +599,33 @@
       e = npcs[i];
       if (e.place !== place) continue;
       d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-      if (d < 18) near = { kind: 'npc', e: e, text: 'Talk · ' + e.name };
+      if (d < 22) near = { kind: 'npc', e: e, text: 'Talk · ' + e.name };
     }
     if (place === 'city') {
       for (i = 0; i < poles.length; i++) {
         e = poles[i];
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 16) near = { kind: 'pole', e: e, text: 'Call · ' + (e.kind === 'bus' ? 'Bus' : 'Taxi') + ' · ' + e.name };
+        if (d < 18) near = { kind: 'pole', e: e, text: 'Call · ' + (e.kind === 'bus' ? 'Bus' : 'Taxi') + ' · ' + e.name };
       }
-      if (player.x > 31 * TILE && player.x < 37 * TILE && player.y > 25 * TILE && player.y < 29 * TILE) {
-        near = { kind: 'mall', text: 'Enter · Mall' };
+      for (i = 0; i < mallDoors.length; i++) {
+        e = mallDoors[i];
+        if (inDoor(player, e.ox, e.oy, e.ow, e.oh)) {
+          near = { kind: 'mall', e: e, text: 'Enter · Mall' };
+        }
       }
-    } else if (player.y > (MROWS - 3) * TILE && player.x > 14 * TILE && player.x < 26 * TILE) {
-      near = { kind: 'exit', text: 'Exit · Mall' };
+    } else {
+      for (i = 0; i < mallDoors.length; i++) {
+        e = mallDoors[i];
+        if (inDoor(player, e.ix, e.iy, e.iw, e.ih)) {
+          near = { kind: 'exit', e: e, text: 'Exit · Mall' };
+        }
+      }
     }
     for (i = 0; i < pieces.length; i++) {
       e = pieces[i];
       if (e.got || e.place !== place) continue;
       d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-      if (d < 12) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
+      if (d < 16) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
     }
     if (near) {
       ui.prompt.textContent = near.text;
@@ -563,9 +635,37 @@
     if (actEdge && near && !interactLock) {
       if (near.kind === 'npc') openTalk(near.e);
       else if (near.kind === 'pole') openPole(near.e);
-      else if (near.kind === 'mall') enterMall();
-      else if (near.kind === 'exit') exitMall();
+      else if (near.kind === 'mall') enterMall(near.e);
+      else if (near.kind === 'exit') exitMall(near.e);
       else if (near.kind === 'piece') takePiece(near.e);
+    }
+  }
+
+  function inDoor(p, tx, ty, tw, th) {
+    return aabb(p.x, p.y, CHAR_W, CHAR_H, tx * TILE, ty * TILE, tw * TILE, th * TILE);
+  }
+
+  function updateWalkers(dt) {
+    var i, w, dx, dy, nx, ny, spd;
+    for (i = 0; i < walkers.length; i++) {
+      w = walkers[i];
+      if (w.place !== place) continue;
+      if (w.wait > 0) {
+        w.wait -= dt;
+        continue;
+      }
+      spd = 26;
+      dx = w.dir === 2 ? spd : w.dir === 1 ? -spd : 0;
+      dy = w.dir === 0 ? spd : w.dir === 3 ? -spd : 0;
+      nx = w.x + dx * dt;
+      ny = w.y + dy * dt;
+      if (blocked(nx, w.y, CHAR_W, CHAR_H) || blocked(w.x, ny, CHAR_W, CHAR_H) || Math.random() < dt * 0.35) {
+        w.dir = Math.floor(Math.random() * 4);
+        w.wait = 0.15 + Math.random() * 1.1;
+      } else {
+        w.x = clamp(nx, 0, map[0].length * TILE - CHAR_W);
+        w.y = clamp(ny, 0, map.length * TILE - CHAR_H);
+      }
     }
   }
 
@@ -579,11 +679,11 @@
     beep(880, 0.1, 0.05, 'sine');
   }
 
-  function enterMall() {
-    cityReturn = { x: 33 * TILE + 4, y: 26 * TILE };
+  function enterMall(door) {
+    cityReturn = { x: door.outX * TILE, y: door.outY * TILE };
     usePlace('mall');
-    player.x = 18 * TILE;
-    player.y = (MROWS - 3) * TILE;
+    player.x = door.sx * TILE;
+    player.y = door.sy * TILE;
     cam.x = clamp(player.x - VW / 2, 0, Math.max(0, MCOLS * TILE - VW));
     cam.y = clamp(player.y - VH / 2, 0, Math.max(0, MROWS * TILE - VH));
     cam.tx = cam.x;
@@ -593,10 +693,10 @@
     beep(300, 0.08, 0.04);
   }
 
-  function exitMall() {
+  function exitMall(door) {
     usePlace('city');
-    player.x = cityReturn.x;
-    player.y = cityReturn.y;
+    player.x = door.outX * TILE;
+    player.y = door.outY * TILE;
     interactLock = true;
     actEdge = false;
     beep(260, 0.08, 0.04);
