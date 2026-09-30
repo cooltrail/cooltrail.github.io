@@ -119,9 +119,9 @@
     return n - Math.floor(n);
   }
 
-  function addBuilding(x, y, w, h, color) {
+  function addBuilding(x, y, w, h) {
     fill(x, y, w, h, 3);
-    buildings.push({ x: x, y: y, w: w, h: h, color: color });
+    buildings.push({ x: x, y: y, w: w, h: h });
   }
 
   function buildMap() {
@@ -138,32 +138,23 @@
     fill(10, 0, 3, ROWS, 1);
     fill(22, 0, 3, ROWS, 1);
     fill(34, 0, 3, ROWS, 1);
-    fill(10, 8, 3, 3, 2);
-    fill(22, 8, 3, 3, 2);
-    fill(34, 8, 3, 3, 2);
-    fill(10, 16, 3, 3, 2);
-    fill(22, 16, 3, 3, 2);
-    fill(34, 16, 3, 3, 2);
-    fill(10, 24, 3, 3, 2);
-    fill(22, 24, 3, 3, 2);
-    fill(34, 24, 3, 3, 2);
     fill(14, 19, 7, 4, 4);
-    addBuilding(1, 1, 8, 6, '#6a7c92');
-    addBuilding(14, 1, 7, 6, '#b85c4a');
-    addBuilding(26, 1, 7, 6, '#4f6e78');
-    addBuilding(38, 1, 9, 6, '#8a6a3a');
-    addBuilding(1, 12, 8, 3, '#5a6a80');
-    addBuilding(14, 12, 7, 3, '#c4784a');
-    addBuilding(26, 12, 7, 3, '#3d5c72');
-    addBuilding(38, 12, 9, 3, '#7a4e5c');
-    addBuilding(1, 20, 8, 3, '#4a5a6e');
-    addBuilding(26, 20, 7, 3, '#d2a24a');
-    addBuilding(38, 20, 9, 3, '#5c6e58');
-    addBuilding(1, 28, 8, 7, '#3e4a5c');
-    addBuilding(14, 28, 7, 7, '#8c5a48');
-    addBuilding(26, 28, 7, 7, '#486070');
-    addBuilding(38, 28, 9, 7, '#6e5a40');
-    addBuilding(14, 4, 3, 2, '#9aa8b4');
+    addBuilding(1, 1, 8, 6);
+    addBuilding(14, 1, 7, 6);
+    addBuilding(26, 1, 7, 6);
+    addBuilding(38, 1, 9, 6);
+    addBuilding(1, 12, 8, 3);
+    addBuilding(14, 12, 7, 3);
+    addBuilding(26, 12, 7, 3);
+    addBuilding(38, 12, 9, 3);
+    addBuilding(1, 20, 8, 3);
+    addBuilding(26, 20, 7, 3);
+    addBuilding(38, 20, 9, 3);
+    addBuilding(1, 28, 8, 7);
+    addBuilding(14, 28, 7, 7);
+    addBuilding(26, 28, 7, 7);
+    addBuilding(38, 28, 9, 7);
+    addBuilding(14, 4, 3, 2);
   }
 
   function bootEntities() {
@@ -274,213 +265,107 @@
     ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, w), Math.max(1, h));
   }
 
-  function shadow(gx, gy, w) {
-    ctx.fillStyle = C.shadow;
-    ctx.beginPath();
-    ctx.ellipse(Math.round(gx + w / 2), Math.round(gy + 15), w * 0.45, 3.2, 0, 0, Math.PI * 2);
-    ctx.fill();
+  function isRoad(tx, ty) {
+    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
+    return map[ty][tx] === 1;
   }
 
-  function drawTile(id, sx, sy, tx, ty) {
+  function nearestRoad(px, py) {
+    var tx = Math.floor(px / TILE);
+    var ty = Math.floor(py / TILE);
+    if (isRoad(tx, ty)) return { x: tx * TILE + 8, y: ty * TILE + 8 };
+    var r, dx, dy;
+    for (r = 1; r <= 4; r++) {
+      for (dy = -r; dy <= r; dy++) {
+        for (dx = -r; dx <= r; dx++) {
+          if (isRoad(tx + dx, ty + dy)) {
+            return { x: (tx + dx) * TILE + 8, y: (ty + dy) * TILE + 8 };
+          }
+        }
+      }
+    }
+    return { x: px, y: py };
+  }
+
+  function findPath(sx, sy, ex, ey) {
+    var start = [Math.floor(sx / TILE), Math.floor(sy / TILE)];
+    var goal = [Math.floor(ex / TILE), Math.floor(ey / TILE)];
+    var key = function (x, y) { return x + ',' + y; };
+    var q = [start];
+    var came = {};
+    came[key(start[0], start[1])] = null;
+    var head = 0;
+    var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    while (head < q.length) {
+      var cur = q[head++];
+      if (cur[0] === goal[0] && cur[1] === goal[1]) break;
+      var i;
+      for (i = 0; i < 4; i++) {
+        var nx = cur[0] + dirs[i][0];
+        var ny = cur[1] + dirs[i][1];
+        var k = key(nx, ny);
+        if (came[k] !== undefined || !isRoad(nx, ny)) continue;
+        came[k] = cur;
+        q.push([nx, ny]);
+      }
+    }
+    if (came[key(goal[0], goal[1])] === undefined && !(start[0] === goal[0] && start[1] === goal[1])) {
+      return [{ x: sx, y: sy }, { x: ex, y: ey }];
+    }
+    var tiles = [];
+    var at = goal;
+    while (at) {
+      tiles.push(at);
+      at = came[key(at[0], at[1])];
+    }
+    tiles.reverse();
+    return tiles.map(function (t) {
+      return { x: t[0] * TILE + 8, y: t[1] * TILE + 8 };
+    });
+  }
+
+  function drawTile(id, sx, sy) {
     var gx = sx - cam.x;
     var gy = sy - cam.y;
     if (gx > VW || gy > VH || gx + TILE < 0 || gy + TILE < 0) return;
-    if (id === 1) {
-      pix(gx, gy, TILE, TILE, (tx + ty) % 5 === 0 ? C.road2 : C.road);
-      if (ty === 9 || ty === 17 || ty === 25) {
-        if (tx % 2 === 0) pix(gx + 2, gy + 7, 8, 2, C.line);
-      }
-      if (tx === 11 || tx === 23 || tx === 35) {
-        if (ty % 2 === 0) pix(gx + 7, gy + 2, 2, 8, C.white);
-      }
-    } else if (id === 2) {
-      pix(gx, gy, TILE, TILE, C.road);
-      pix(gx + 1, gy + 1, 14, 3, C.white);
-      pix(gx + 1, gy + 7, 14, 3, C.white);
-      pix(gx + 1, gy + 12, 14, 3, C.white);
-    } else if (id === 4) {
-      pix(gx, gy, TILE, TILE, (tx + ty) % 2 ? C.plaza : C.plaza2);
-    } else if (id === 3) {
-      pix(gx, gy, TILE, TILE, C.walk2);
-    } else {
-      pix(gx, gy, TILE, TILE, hash(tx, ty) > 0.5 ? C.walk : C.walk2);
-    }
+    if (id === 1) pix(gx, gy, TILE, TILE, C.road);
+    else if (id === 4) pix(gx, gy, TILE, TILE, C.plaza);
+    else if (id === 3) pix(gx, gy, TILE, TILE, '#888888');
+    else pix(gx, gy, TILE, TILE, C.walk);
   }
 
   function drawBuilding(b) {
-    var gx = b.x * TILE - cam.x;
-    var gy = b.y * TILE - cam.y - 10;
-    var w = b.w * TILE;
-    var h = b.h * TILE + 10;
-    pix(gx + 2, gy + h - 4, w, 6, C.shadow);
-    pix(gx, gy, w, h, b.color);
-    pix(gx, gy, w, 4, '#1a1e28');
-    var i, j;
-    for (j = 8; j < h - 8; j += 6) {
-      for (i = 4; i < w - 4; i += 6) {
-        pix(gx + i, gy + j, 3, 3, (i + j) % 12 === 4 ? C.accent : '#dce8f0');
-      }
-    }
+    pix(b.x * TILE - cam.x, b.y * TILE - cam.y, b.w * TILE, b.h * TILE, '#888888');
   }
 
   function drawPole(p) {
     var gx = p.x - cam.x;
     var gy = p.y - cam.y;
-    var lit = p.kind === 'bus' ? C.bus : C.taxi;
-    pix(gx + 2, gy + 14, 8, 3, C.shadow);
-    pix(gx + 5, gy - 10, 3, 24, '#2a2e38');
-    pix(gx + 2, gy - 12, 9, 8, lit);
-    pix(gx + 4, gy - 10, 5, 4, C.paper);
-    if (Math.floor(time * 4) % 2 === 0) pix(gx + 5, gy - 14, 3, 2, lit);
+    pix(gx, gy - 6, 1, 8, '#222');
+    pix(gx, gy - 8, 2, 2, p.kind === 'bus' ? C.bus : C.taxi);
   }
 
   function drawForcefield() {
     if (lattice <= 0) return;
     var ex = 24 * TILE - cam.x + 8;
     var ey = 4 * TILE - cam.y + 8;
-    pix(ex - 4, ey + 10, 12, 4, C.shadow);
-    pix(ex, ey - 8, 4, 22, '#c5d0dc');
-    pix(ex - 6, ey - 10, 16, 6, '#8ab4d8');
-    pix(ex - 2, ey - 12, 8, 4, '#e7f4ff');
-    var r = 28 + lattice * 220;
-    var glow = 0.18 + lattice * 0.28 + Math.sin(time * 5) * 0.06;
-    ctx.save();
-    ctx.globalAlpha = glow;
-    ctx.strokeStyle = '#7ec8ff';
-    ctx.lineWidth = 3;
+    var r = 20 + lattice * 180;
+    ctx.strokeStyle = 'rgba(126,200,255,' + (0.35 + lattice * 0.4) + ')';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(ex + 2, ey + 12, r, Math.PI, 0, false);
+    ctx.arc(ex, ey, r, Math.PI, 0, false);
     ctx.stroke();
-    ctx.strokeStyle = '#d4f0ff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(ex + 2, ey + 12, r * 0.72, Math.PI, 0, false);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(ex + 2, ey + 12, r * 0.45, Math.PI, 0, false);
-    ctx.stroke();
-    if (lattice > 0.35) {
-      ctx.globalAlpha = glow * 0.45;
-      ctx.fillStyle = '#7ec8ff';
-      ctx.beginPath();
-      ctx.arc(ex + 2, ey + 12, r, Math.PI, 0, false);
-      ctx.fill();
-    }
-    ctx.restore();
   }
 
-  function drawUfo() {
-    if (quest === 'idle') return;
-    var ships = quest === 'build' ? 3 : quest === 'saved' ? 1 : 2;
-    var i;
-    for (i = 0; i < ships; i++) {
-      var wx = 80 + i * 140 + Math.sin(time * 0.35 + i) * 24;
-      var wy = -18 - i * 6 + (quest === 'saved' ? -40 : 0);
-      var gx = wx - cam.x * 0.35;
-      var gy = wy - cam.y * 0.12 + 22;
-      if (gy > VH || gx > VW + 20 || gx < -30) continue;
-      pix(gx + 6, gy, 16, 5, '#6a7488');
-      pix(gx + 10, gy - 4, 8, 6, '#9aa8bc');
-      pix(gx + 12, gy - 2, 4, 3, quest === 'build' ? C.verm : '#7ec8ff');
-      pix(gx + 8, gy + 4, 12, 2, '#3a4458');
-      if (quest === 'build' && lattice > 0.55) pix(gx + 12, gy + 6, 4, 8, 'rgba(255,80,80,0.45)');
-    }
+  function drawDot(px, py, color) {
+    pix(px - cam.x, py - cam.y, 1, 1, color);
   }
 
-  var PFOX = {
-    k: '#3a2418', w: '#fff4d6', o: '#e07a2a', r: '#c44b22',
-    c: '#f0c9a0', n: '#8b4e2a', p: '#ff8aa0', y: '#f5c542',
-    '.': null
-  };
-  var FOX_DOWN = [
-    '..kkkkkk..',
-    '.krrwwrrk.',
-    'krwwowwwrk',
-    'kwoowwoowk',
-    'kwwkkkkwwk',
-    '.kwwwwwwk.',
-    '..kcccck..',
-    '.kcoyyock.',
-    '.kcoooock.',
-    '..kcccck..',
-    '..kk..kk..'
-  ];
-  var FOX_SIDE = [
-    '..kkkkk...',
-    '.krrwwwk..',
-    'krwowwwwk.',
-    'kwoowwwwk.',
-    'kwwwkkwk..',
-    '.kwwwwwk..',
-    '..kccck...',
-    '.kcyyock..',
-    '.kcooock..',
-    '..kccck...',
-    '..kk.kk...'
-  ];
-  var FOX_UP = [
-    '..kkkkkk..',
-    '.krrrrrrk.',
-    'krrwwwwrrk',
-    'krwwwwwwrk',
-    'kwwwwwwwwk',
-    '.kwwwwwwk.',
-    '..kcccck..',
-    '.kcccccck.',
-    '.kcccccck.',
-    '..kcccck..',
-    '..kk..kk..'
-  ];
-
-  function blit(rows, x, y, pal, flip) {
-    var h = rows.length;
-    var w = rows[0].length;
-    var r, c, ch, col;
-    x = Math.round(x);
-    y = Math.round(y);
-    for (r = 0; r < h; r++) {
-      for (c = 0; c < w; c++) {
-        ch = rows[r].charAt(flip ? w - 1 - c : c);
-        col = pal[ch];
-        if (!col) continue;
-        ctx.fillStyle = col;
-        ctx.fillRect(x + c, y + r, 1, 1);
-      }
-    }
-  }
-
-  function drawFox(gx, gy, dir, walk) {
-    var bob = walk ? (Math.floor(time * 10) % 2) : (Math.sin(time * 3) > 0.92 ? 1 : 0);
-    shadow(gx, gy + bob, 12);
-    var rows = dir === 3 ? FOX_UP : (dir === 0 ? FOX_DOWN : FOX_SIDE);
-    blit(rows, gx + 1, gy + bob, PFOX, dir === 1);
-    if (quest === 'have' || quest === 'build') pix(gx + 3, gy + 8 + bob, 7, 4, C.paper);
-  }
-
-  function drawPerson(kind, gx, gy) {
-    var bob = Math.round(Math.sin(time * 2.2 + gx) * 1);
-    shadow(gx, gy + bob, 12);
-    if (kind === 'mira') {
-      pix(gx + 3, gy + 6 + bob, 9, 8, '#4a6a88');
-      pix(gx + 4, gy + 1 + bob, 7, 6, C.skin);
-      pix(gx + 3, gy + bob, 9, 3, '#dce6f0');
-      pix(gx + 6, gy + 3 + bob, 2, 2, C.ink);
-    } else if (kind === 'rex') {
-      pix(gx + 3, gy + 6 + bob, 9, 8, '#4a5440');
-      pix(gx + 4, gy + 1 + bob, 7, 6, C.skin);
-      pix(gx + 3, gy + bob, 9, 3, '#2f4a30');
-      pix(gx + 6, gy + 3 + bob, 2, 2, C.ink);
-    } else if (kind === 'dash') {
-      pix(gx + 3, gy + 6 + bob, 9, 8, C.bus);
-      pix(gx + 4, gy + 1 + bob, 7, 6, C.skin);
-      pix(gx + 3, gy + bob, 9, 3, C.accent);
-      pix(gx + 6, gy + 3 + bob, 2, 2, C.ink);
-    } else {
-      pix(gx + 4, gy + 7 + bob, 7, 6, '#7a5a70');
-      pix(gx + 5, gy + 2 + bob, 6, 6, C.skin);
-      pix(gx + 4, gy + 1 + bob, 7, 3, '#3a3048');
-      pix(gx + 6, gy + 4 + bob, 2, 2, C.ink);
-    }
+  function npcColor(kind) {
+    if (kind === 'mira') return '#7ec8ff';
+    if (kind === 'rex') return '#7ed67a';
+    if (kind === 'dash') return C.bus;
+    return '#e07a2a';
   }
 
   function drawVehicle() {
@@ -488,32 +373,22 @@
     var v = ride.vehicle;
     var gx = v.x - cam.x;
     var gy = v.y - cam.y;
-    pix(gx, gy + 8, 28, 8, v.kind === 'bus' ? C.bus : C.taxi);
-    pix(gx + 2, gy + 4, 8, 6, '#dce8f0');
-    pix(gx + 12, gy + 4, 8, 6, '#dce8f0');
-    pix(gx, gy + 14, 6, 4, '#2a2e38');
-    pix(gx + 20, gy + 14, 6, 4, '#2a2e38');
+    var w = v.kind === 'bus' ? 14 : 10;
+    var h = 6;
+    pix(gx - w / 2, gy - h / 2, w, h, v.kind === 'bus' ? C.bus : C.taxi);
   }
 
   function drawWorld() {
     var x, y;
     pix(0, 0, VW, VH, C.night);
     for (y = 0; y < ROWS; y++) {
-      for (x = 0; x < COLS; x++) drawTile(map[y][x], x * TILE, y * TILE, x, y);
+      for (x = 0; x < COLS; x++) drawTile(map[y][x], x * TILE, y * TILE);
     }
-    poles.forEach(drawPole);
     buildings.forEach(drawBuilding);
-    var list = npcs.map(function (e) {
-      return { y: e.y, draw: function () { drawPerson(e.kind, e.x - cam.x, e.y - cam.y); } };
-    });
-    list.push({
-      y: player.y,
-      draw: function () { drawFox(player.x - cam.x, player.y - cam.y, player.dir, player.walk); }
-    });
-    list.sort(function (a, b) { return a.y - b.y; });
-    list.forEach(function (e) { e.draw(); });
+    poles.forEach(drawPole);
+    npcs.forEach(function (e) { drawDot(e.x, e.y, npcColor(e.kind)); });
+    if (scene !== 'ride') drawDot(player.x, player.y, quest === 'have' || quest === 'build' ? C.paper : C.accent);
     drawVehicle();
-    drawUfo();
     drawForcefield();
     if (flash > 0) pix(0, 0, VW, VH, 'rgba(180,220,255,' + flash + ')');
   }
@@ -535,12 +410,12 @@
     player.walk = !!(player.vx || player.vy);
     var nx = player.x + player.vx * dt;
     var ny = player.y + player.vy * dt;
-    if (!blocked(nx, player.y + 10, 10, 6)) player.x = nx;
-    if (!blocked(player.x, ny + 10, 10, 6)) player.y = ny;
-    player.x = clamp(player.x, 0, COLS * TILE - 12);
-    player.y = clamp(player.y, 0, ROWS * TILE - 16);
-    cam.tx = clamp(player.x - VW / 2 + 6, 0, COLS * TILE - VW);
-    cam.ty = clamp(player.y - VH / 2 + 8, 0, ROWS * TILE - VH);
+    if (!blocked(nx, player.y, 1, 1)) player.x = nx;
+    if (!blocked(player.x, ny, 1, 1)) player.y = ny;
+    player.x = clamp(player.x, 0, COLS * TILE - 1);
+    player.y = clamp(player.y, 0, ROWS * TILE - 1);
+    cam.tx = clamp(player.x - VW / 2, 0, COLS * TILE - VW);
+    cam.ty = clamp(player.y - VH / 2, 0, ROWS * TILE - VH);
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
     cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
 
@@ -661,21 +536,58 @@
 
   function takeRide(dest) {
     closePick();
+    var start = nearestRoad(ride.pole.x, ride.pole.y);
+    var end = nearestRoad(dest.x, dest.y);
+    ride.dest = dest;
+    ride.path = findPath(start.x, start.y, end.x, end.y);
+    ride.pi = 0;
+    ride.vehicle = { kind: ride.pole.kind, x: start.x, y: start.y };
+    player.x = start.x;
+    player.y = start.y;
     scene = 'ride';
-    ride.vehicle = { kind: ride.pole.kind, x: player.x - 30, y: player.y };
     beep(180, 0.12, 0.04, 'triangle');
-    setTimeout(function () {
-      player.x = dest.x + 14;
-      player.y = dest.y;
-      cam.x = clamp(player.x - VW / 2 + 6, 0, COLS * TILE - VW);
-      cam.y = clamp(player.y - VH / 2 + 8, 0, ROWS * TILE - VH);
-      cam.tx = cam.x;
-      cam.ty = cam.y;
-      ride.vehicle = null;
-      scene = 'world';
-      interactLock = true;
-      beep(640, 0.08, 0.04, 'sine');
-    }, ride.pole.kind === 'taxi' ? 450 : 700);
+  }
+
+  function finishRide() {
+    var dest = ride.dest;
+    player.x = dest.x + 3;
+    player.y = dest.y;
+    ride.vehicle = null;
+    ride.path = null;
+    scene = 'world';
+    interactLock = true;
+    beep(640, 0.08, 0.04, 'sine');
+  }
+
+  function updateRide(dt) {
+    var v = ride.vehicle;
+    if (!v || !ride.path || !ride.path.length) {
+      finishRide();
+      return;
+    }
+    if (ride.pi >= ride.path.length) {
+      finishRide();
+      return;
+    }
+    var p = ride.path[ride.pi];
+    var dx = p.x - v.x;
+    var dy = p.y - v.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var spd = v.kind === 'taxi' ? 150 : 110;
+    if (dist < 3) {
+      v.x = p.x;
+      v.y = p.y;
+      ride.pi += 1;
+      return;
+    }
+    v.x += (dx / dist) * spd * dt;
+    v.y += (dy / dist) * spd * dt;
+    player.x = v.x;
+    player.y = v.y;
+    cam.tx = clamp(player.x - VW / 2, 0, COLS * TILE - VW);
+    cam.ty = clamp(player.y - VH / 2, 0, ROWS * TILE - VH);
+    cam.x += (cam.tx - cam.x) * Math.min(1, dt * 6);
+    cam.y += (cam.ty - cam.y) * Math.min(1, dt * 6);
   }
 
   function openEnd() {
@@ -788,14 +700,11 @@
     var dt = Math.min(0.05, (now - last) / 1000 || 0.016);
     last = now;
     time += dt;
-    if (scene === 'world' || scene === 'ride' || scene === 'build') {
-      if (scene === 'world') updateWorld(dt);
-      else {
-        cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
-        cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
-        if (ride.vehicle) ride.vehicle.x += 90 * dt;
-        if (quest === 'build') updateWorld(dt);
-      }
+    if (scene === 'world') {
+      updateWorld(dt);
+      drawWorld();
+    } else if (scene === 'ride') {
+      updateRide(dt);
       drawWorld();
     } else if (scene === 'dialog' || scene === 'pick') {
       drawWorld();
