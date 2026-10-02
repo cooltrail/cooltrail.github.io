@@ -12,7 +12,7 @@ categories = ['games']
 
 <iframe class="isle-frame" src="/callpole/" title="Callpole" allow="autoplay"></iframe>
 
-Talk to **Mira** the arctic fox in the plaza. Find all **6** lost blueprint pieces. One is inside the huge **mall** (four doors, north south east west — Space at any gate). Foxes, wolves, squirrels and other animals walk the sidewalks. Then take the set to **Rex** the wolf at North Base.
+Talk to **Mira** the arctic fox in the plaza. Find all **6** lost blueprint pieces across the **city**, the huge **mall**, the **highways**, and the **countryside** (village and farm). A minimap shows the whole map. Then take the set to **Rex** the wolf at North Base.
 
 <style>
 .play-btn {

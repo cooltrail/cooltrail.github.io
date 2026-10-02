@@ -4,8 +4,10 @@
   var VW = 384;
   var VH = 216;
   var TILE = 16;
-  var COLS = 62;
-  var ROWS = 46;
+  var COLS = 118;
+  var ROWS = 80;
+  var CITY_W = 62;
+  var CITY_H = 46;
   var MCOLS = 48;
   var MROWS = 32;
   var CHAR_W = 10;
@@ -55,7 +57,13 @@
     shadow: 'rgba(10, 12, 20, 0.35)',
     bus: '#3d8ad4',
     taxi: '#f0c12a',
-    night: '#1a2238'
+    night: '#1a2238',
+    grass: '#4a7a38',
+    grass2: '#3a642c',
+    field: '#c4b45a',
+    dirt: '#8a6a48',
+    hwy: '#232834',
+    tree: '#2a4e24'
   };
 
   var keys = {};
@@ -111,7 +119,7 @@
   }
 
   function solid(id) {
-    return id === 3;
+    return id === 3 || id === 8;
   }
 
   function blocked(x, y, w, h) {
@@ -147,22 +155,31 @@
     buildings = p === 'mall' ? mallBuildings : cityBuildings;
   }
 
-  function addBuilding(x, y, w, h) {
+  function addBuilding(x, y, w, h, col) {
     fill(x, y, w, h, 3);
-    buildings.push({ x: x, y: y, w: w, h: h });
+    buildings.push({ x: x, y: y, w: w, h: h, col: col || '#888888' });
   }
 
   function buildMap() {
     map = allocMap(COLS, ROWS);
     buildings = [];
-    fill(0, 8, COLS, 3, 1);
-    fill(0, 16, COLS, 3, 1);
-    fill(0, 24, COLS, 3, 1);
-    fill(10, 0, 3, ROWS, 1);
+    fill(0, 0, COLS, ROWS, 7);
+    fill(0, 0, CITY_W, CITY_H, 0);
+    fill(0, 8, CITY_W, 3, 1);
+    fill(0, 16, CITY_W, 3, 1);
+    fill(0, 24, CITY_W, 3, 1);
+    fill(10, 0, 3, CITY_H, 1);
     fill(22, 0, 3, 27, 1);
     fill(34, 0, 3, 27, 1);
-    fill(56, 0, 3, ROWS, 1);
+    fill(56, 0, 3, CITY_H, 1);
     fill(14, 19, 7, 4, 4);
+    fill(CITY_W, 8, COLS - CITY_W, 3, 9);
+    fill(CITY_W, 16, COLS - CITY_W, 3, 9);
+    fill(CITY_W, 24, COLS - CITY_W, 3, 9);
+    fill(10, CITY_H, 3, ROWS - CITY_H, 9);
+    fill(56, CITY_H, 3, ROWS - CITY_H, 9);
+    fill(0, 50, COLS, 3, 9);
+    fill(98, 0, 3, ROWS, 9);
     addBuilding(1, 1, 8, 6);
     addBuilding(14, 1, 7, 6);
     addBuilding(26, 1, 7, 6);
@@ -179,6 +196,7 @@
     addBuilding(48, 20, 7, 3);
     addBuilding(1, 28, 8, 15);
     addBuilding(14, 28, 41, 15);
+    paintCountry();
     paintCrosswalks();
     cityMap = map;
     cityBuildings = buildings;
@@ -206,7 +224,9 @@
       { id: 'dash', name: 'Dash', kind: 'dash', place: 'city', x: 12 * TILE, y: 17 * TILE, lines: [] },
       { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 24 * TILE, y: 3 * TILE, lines: [] },
       { id: 'kit', name: 'Kit', kind: 'kit', place: 'city', x: 36 * TILE, y: 17 * TILE, lines: [] },
-      { id: 'jan', name: 'Jan', kind: 'jan', place: 'mall', x: 18 * TILE, y: 10 * TILE, lines: [] }
+      { id: 'jan', name: 'Jan', kind: 'jan', place: 'mall', x: 18 * TILE, y: 10 * TILE, lines: [] },
+      { id: 'oak', name: 'Oak', kind: 'oak', place: 'city', x: 106 * TILE, y: 7 * TILE, lines: [] },
+      { id: 'ash', name: 'Ash', kind: 'ash', place: 'city', x: 76 * TILE, y: 62 * TILE, lines: [] }
     ];
     poles = [
       { id: 'bus-plaza', kind: 'bus', name: 'Plaza', x: 12 * TILE, y: 18 * TILE },
@@ -214,10 +234,14 @@
       { id: 'bus-base', kind: 'bus', name: 'North Base', x: 22 * TILE, y: 6 * TILE },
       { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 22 * TILE, y: 26 * TILE },
       { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 56 * TILE, y: 34 * TILE },
+      { id: 'bus-village', kind: 'bus', name: 'Village', x: 98 * TILE, y: 18 * TILE },
+      { id: 'bus-farm', kind: 'bus', name: 'Farm', x: 56 * TILE, y: 52 * TILE },
       { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 18 * TILE },
       { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 26 * TILE },
       { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 26 * TILE, y: 6 * TILE },
-      { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 34 * TILE, y: 26 * TILE }
+      { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 34 * TILE, y: 26 * TILE },
+      { id: 'taxi-village', kind: 'taxi', name: 'Village', x: 100 * TILE, y: 10 * TILE },
+      { id: 'taxi-farm', kind: 'taxi', name: 'Farm', x: 80 * TILE, y: 50 * TILE }
     ];
     mallDoors = [
       { id: 'n', ox: 32, oy: 27, ow: 4, oh: 2, ix: 20, iy: 0, iw: 8, ih: 2, sx: 22, sy: 2, outX: 33, outY: 26 },
@@ -229,6 +253,34 @@
     bootCars();
     if (!pieces.length) resetPieces();
     refreshLines();
+  }
+
+  function plant(x, y) {
+    if (map[y] && map[y][x] === 7) map[y][x] = 8;
+  }
+
+  function paintCountry() {
+    fill(68, 28, 14, 10, 11);
+    fill(84, 34, 12, 8, 11);
+    fill(70, 62, 18, 10, 11);
+    fill(104, 54, 12, 12, 11);
+    fill(64, 20, 20, 2, 10);
+    fill(80, 22, 2, 28, 10);
+    fill(82, 54, 14, 2, 10);
+    fill(104, 7, 10, 1, 10);
+    addBuilding(86, 1, 8, 5, '#8a6238');
+    addBuilding(104, 1, 8, 5, '#8a6238');
+    addBuilding(86, 12, 8, 3, '#8a6238');
+    addBuilding(104, 12, 7, 3, '#8a6238');
+    addBuilding(90, 20, 6, 3, '#8a6238');
+    addBuilding(74, 56, 8, 5, '#7a4a28');
+    addBuilding(88, 58, 6, 4, '#7a4a28');
+    var trees = [
+      [66, 4], [70, 6], [74, 3], [78, 12], [82, 6], [110, 6], [114, 12],
+      [66, 32], [72, 40], [108, 28], [112, 36], [64, 56], [68, 60],
+      [94, 70], [100, 66], [110, 70], [114, 58], [84, 74], [76, 74]
+    ];
+    trees.forEach(function (t) { plant(t[0], t[1]); plant(t[0] + 1, t[1]); });
   }
 
   function paintCrosswalks() {
@@ -259,7 +311,9 @@
     var spots = [
       [16, 7], [40, 7], [8, 15], [28, 15],
       [18, 19], [40, 19], [8, 23], [40, 23],
-      [6, 27], [50, 27], [13, 34], [55, 34]
+      [6, 27], [50, 27], [13, 34], [55, 34],
+      [70, 12], [90, 7], [106, 15], [92, 28],
+      [66, 54], [92, 64], [110, 20], [80, 66]
     ];
     var mallSpots = [
       [16, 12], [24, 16], [32, 12], [20, 20], [16, 8], [12, 18], [32, 18], [16, 22]
@@ -343,6 +397,11 @@
     add(makeLoop(34, 18, 58, 24), 1, 2);
     add(makeVertShuttle(12, 10, 26, 44), 1, 0);
     add(makeVertShuttle(58, 56, 26, 44), 1, 1);
+    add(makeLoop(10, 10, 98, 50), 3, 0);
+    add(makeLoop(56, 18, 98, 50), 2, 1);
+    add(makeVertShuttle(12, 10, 46, 76), 1, 2);
+    add(makeVertShuttle(58, 56, 46, 76), 1, 0);
+    add(makeVertShuttle(100, 98, 8, 76), 2, 1);
   }
 
   function carSize(c) {
@@ -402,11 +461,11 @@
   function resetPieces() {
     pieces = [
       { id: 1, place: 'city', x: 18 * TILE, y: 21 * TILE, got: false },
-      { id: 2, place: 'city', x: 40 * TILE, y: 19 * TILE, got: false },
+      { id: 2, place: 'city', x: 90 * TILE, y: 19 * TILE, got: false },
       { id: 3, place: 'city', x: 9 * TILE, y: 13 * TILE, got: false },
       { id: 4, place: 'city', x: 16 * TILE, y: 7 * TILE, got: false },
       { id: 5, place: 'mall', x: 32 * TILE, y: 16 * TILE, got: false },
-      { id: 6, place: 'city', x: 50 * TILE, y: 27 * TILE, got: false }
+      { id: 6, place: 'city', x: 80 * TILE, y: 64 * TILE, got: false }
     ];
   }
 
@@ -426,12 +485,12 @@
       npc('mira').lines = [
         'Mira. Arctic fox. Civic works. The clouds are not weather.',
         'The forcefield blueprint was six pieces. I lost every one.',
-        'Find them. City, alleys, the mall down south. Then the North Base can build it.'
+        'Find them. City, mall, highway east to the village, farm down south. Then North Base.'
       ];
     } else if (quest === 'hunt') {
       npc('mira').lines = n >= 6
         ? ['That is all six. Rex at North Base. Do not stop for snacks.']
-        : ['That is ' + n + ' of 6. Keep looking. One is in the mall. Huge gray block. Four doors around it.'];
+        : ['That is ' + n + ' of 6. Mall, village past the highway, farm south. Check the map.'];
     } else if (quest === 'have') {
       npc('mira').lines = ['You still have the set? North. The base. Poles if you want speed.'];
     } else {
@@ -439,7 +498,7 @@
     }
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
-      'Mall has four doors. North, south, east, west. Space at any of them.'
+      'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
       npc('rex').lines = [
@@ -451,10 +510,16 @@
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
-    npc('kit').lines = ['Kit the cat. The mall ate a scrap of paper. Huge gray south. Four doors. Space at any gate.'];
+    npc('kit').lines = ['Kit the cat. Mall, plus the country. Highway east. Farm is a long walk or a pole.'];
     npc('jan').lines = n >= 6 || pieces[4] && pieces[4].got
       ? ['Jan the rabbit. Food court is just gray too. You already took the scrap.']
       : ['Jan the rabbit. Paper on the floor by the east shops. I thought it was a receipt.'];
+    npc('oak').lines = pieces[1] && pieces[1].got
+      ? ['Oak the bear. You found the village scrap. The highway goes home if you want it.']
+      : ['Oak the bear. Village. A scrap sat by the inn. Highway west is the city.'];
+    npc('ash').lines = pieces[5] && pieces[5].got
+      ? ['Ash the deer. Barn is quieter without that paper blowing in the barley.']
+      : ['Ash the deer. Farm. Something white is in the south field. Poles on the belt road.'];
   }
 
   function questLabel() {
@@ -519,14 +584,14 @@
   }
 
   function isRoad(tx, ty) {
-    if (!cityMap[ty] || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
+    if (!cityMap[ty] || tx < 0 || ty < 0 || tx >= cityMap[0].length || ty >= cityMap.length) return false;
     var id = cityMap[ty][tx];
-    return id === 1 || id === 5 || id === 6;
+    return id === 1 || id === 5 || id === 6 || id === 9;
   }
 
   function pedWalk(px, py) {
     var id = tileAt(px, py);
-    return id === 0 || id === 4 || id === 5 || id === 6;
+    return id === 0 || id === 4 || id === 5 || id === 6 || id === 7 || id === 10 || id === 11;
   }
 
   function walkerOk(x, y) {
@@ -597,7 +662,10 @@
     var i;
     if (gx > VW || gy > VH || gx + TILE < 0 || gy + TILE < 0) return;
     if (id === 1) pix(gx, gy, TILE, TILE, C.road);
-    else if (id === 5) {
+    else if (id === 9) {
+      pix(gx, gy, TILE, TILE, C.hwy);
+      pix(gx + 7, gy + 7, 2, 2, C.line);
+    } else if (id === 5) {
       pix(gx, gy, TILE, TILE, C.road);
       for (i = 0; i < 4; i++) pix(gx + 2 + i * 3, gy + 1, 2, TILE - 2, C.white);
     } else if (id === 6) {
@@ -605,11 +673,19 @@
       for (i = 0; i < 4; i++) pix(gx + 1, gy + 2 + i * 3, TILE - 2, 2, C.white);
     } else if (id === 4) pix(gx, gy, TILE, TILE, C.plaza);
     else if (id === 3) pix(gx, gy, TILE, TILE, '#888888');
+    else if (id === 7) pix(gx, gy, TILE, TILE, ((sx + sy) / TILE) % 2 === 0 ? C.grass : C.grass2);
+    else if (id === 8) {
+      pix(gx, gy, TILE, TILE, C.grass);
+      pix(gx + 6, gy + 10, 3, 5, '#5a3a22');
+      pix(gx + 2, gy + 1, 12, 10, C.tree);
+      pix(gx + 4, gy + 3, 8, 6, '#3d6a30');
+    } else if (id === 10) pix(gx, gy, TILE, TILE, C.dirt);
+    else if (id === 11) pix(gx, gy, TILE, TILE, ((sx / TILE) % 2 === 0) ? C.field : '#b8a44c');
     else pix(gx, gy, TILE, TILE, C.walk);
   }
 
   function drawBuilding(b) {
-    pix(b.x * TILE - cam.x, b.y * TILE - cam.y, b.w * TILE, b.h * TILE, '#888888');
+    pix(b.x * TILE - cam.x, b.y * TILE - cam.y, b.w * TILE, b.h * TILE, b.col || '#888888');
   }
 
   function drawPole(p) {
@@ -640,6 +716,7 @@
     if (species === 'raccoon') return { fur: '#9a9088', dark: '#2e2e36', light: '#dcd6ce', inner: '#c09080', tip: '#2e2e36' };
     if (species === 'bear') return { fur: '#6b4a32', dark: '#3e2818', light: '#c4a07a', inner: '#8a6a4a', tip: '#6b4a32' };
     if (species === 'pigeon') return { fur: '#a8b0b8', dark: '#6a7380', light: '#ece6dc', inner: '#7ec8ff', tip: '#c4a070' };
+    if (species === 'deer') return { fur: '#c49a5a', dark: '#8a6230', light: '#f0dcb0', inner: '#e8b070', tip: '#f0dcb0' };
     return { fur: '#e07a2a', dark: '#b85a14', light: '#f4d2a8', inner: '#f0a070', tip: '#f4e6d0' };
   }
 
@@ -648,6 +725,8 @@
     if (kind === 'rex') return { species: 'wolf', accent: '#7ed67a', label: 'Wolf' };
     if (kind === 'dash') return { species: 'squirrel', accent: C.bus, label: 'Squirrel' };
     if (kind === 'jan') return { species: 'rabbit', accent: '#e6a0d0', label: 'Rabbit' };
+    if (kind === 'oak') return { species: 'bear', accent: '#8a6238', label: 'Bear' };
+    if (kind === 'ash') return { species: 'deer', accent: '#c4b45a', label: 'Deer' };
     return { species: 'cat', accent: '#e07a2a', label: 'Cat' };
   }
 
@@ -677,7 +756,7 @@
       if (accent) d(2, 6, 6, 1, accent);
       return;
     }
-    if (species === 'rabbit') {
+    if (species === 'rabbit' || species === 'deer') {
       d(2, 0, 2, 4, pal.fur);
       d(6, 0, 2, 4, pal.fur);
       d(3, 1, 1, 3, pal.inner);
@@ -756,13 +835,63 @@
     if (scene === 'ride' && ride.vehicle) drawCar(ride.vehicle);
   }
 
+  function miniColor(id) {
+    if (id === 1 || id === 5 || id === 6) return C.road;
+    if (id === 9) return '#3a4050';
+    if (id === 3) return '#7a7a7a';
+    if (id === 4) return C.plaza;
+    if (id === 7) return C.grass;
+    if (id === 8) return C.tree;
+    if (id === 10) return C.dirt;
+    if (id === 11) return C.field;
+    return C.walk;
+  }
+
+  function drawMinimap() {
+    var mw = 64;
+    var mh = 42;
+    var ox = VW - mw - 5;
+    var oy = VH - mh - 5;
+    var i, j, tx, ty, id;
+    var px, py, vx, vy, vw, vh;
+    pix(ox - 2, oy - 2, mw + 4, mh + 4, '#3a2418');
+    pix(ox - 1, oy - 1, mw + 2, mh + 2, C.paper);
+    for (j = 0; j < mh; j++) {
+      for (i = 0; i < mw; i++) {
+        tx = Math.min(COLS - 1, Math.floor(i * COLS / mw));
+        ty = Math.min(ROWS - 1, Math.floor(j * ROWS / mh));
+        id = cityMap[ty] ? cityMap[ty][tx] : 7;
+        pix(ox + i, oy + j, 1, 1, miniColor(id));
+      }
+    }
+    vx = ox + Math.floor((cam.x / TILE) * mw / COLS);
+    vy = oy + Math.floor((cam.y / TILE) * mh / ROWS);
+    vw = Math.max(3, Math.floor((VW / TILE) * mw / COLS));
+    vh = Math.max(3, Math.floor((VH / TILE) * mh / ROWS));
+    ctx.strokeStyle = C.white;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(vx + 0.5, vy + 0.5, vw, vh);
+    if (place === 'mall') {
+      px = 34;
+      py = 35;
+    } else {
+      px = player.x / TILE;
+      py = player.y / TILE;
+    }
+    pix(ox + Math.floor(px * mw / COLS), oy + Math.floor(py * mh / ROWS), 2, 2, C.accent);
+  }
+
   function drawWorld() {
     var x, y;
     var maxC = map[0].length;
     var maxR = map.length;
+    var x0 = Math.max(0, Math.floor(cam.x / TILE) - 1);
+    var y0 = Math.max(0, Math.floor(cam.y / TILE) - 1);
+    var x1 = Math.min(maxC, Math.ceil((cam.x + VW) / TILE) + 1);
+    var y1 = Math.min(maxR, Math.ceil((cam.y + VH) / TILE) + 1);
     pix(0, 0, VW, VH, place === 'mall' ? '#2a2a2e' : C.night);
-    for (y = 0; y < maxR; y++) {
-      for (x = 0; x < maxC; x++) drawTile(map[y][x], x * TILE, y * TILE);
+    for (y = y0; y < y1; y++) {
+      for (x = x0; x < x1; x++) drawTile(map[y][x], x * TILE, y * TILE);
     }
     buildings.forEach(drawBuilding);
     if (place === 'city') {
@@ -802,6 +931,7 @@
     drawVehicle();
     if (place === 'city') drawForcefield();
     if (flash > 0) pix(0, 0, VW, VH, 'rgba(180,220,255,' + flash + ')');
+    drawMinimap();
   }
 
   function updateWorld(dt) {
@@ -1106,8 +1236,8 @@
     v.y += (dy / dist) * spd * dt;
     player.x = v.x;
     player.y = v.y;
-    cam.tx = clamp(player.x - VW / 2, 0, COLS * TILE - VW);
-    cam.ty = clamp(player.y - VH / 2, 0, ROWS * TILE - VH);
+    cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, cityMap[0].length * TILE - VW));
+    cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, cityMap.length * TILE - VH));
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 6);
     cam.y += (cam.ty - cam.y) * Math.min(1, dt * 6);
   }
