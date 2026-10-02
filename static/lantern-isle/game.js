@@ -216,38 +216,38 @@
   }
 
   function bootEntities() {
-    player.x = 16 * TILE;
-    player.y = 18 * TILE;
+    player.x = 18 * TILE;
+    player.y = 20 * TILE;
     player.dir = 0;
     npcs = [
       { id: 'mira', name: 'Mira', kind: 'mira', place: 'city', x: 16 * TILE, y: 20 * TILE, lines: [] },
-      { id: 'dash', name: 'Dash', kind: 'dash', place: 'city', x: 12 * TILE, y: 17 * TILE, lines: [] },
-      { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 24 * TILE, y: 3 * TILE, lines: [] },
-      { id: 'kit', name: 'Kit', kind: 'kit', place: 'city', x: 36 * TILE, y: 17 * TILE, lines: [] },
+      { id: 'dash', name: 'Dash', kind: 'dash', place: 'city', x: 9 * TILE, y: 15 * TILE, lines: [] },
+      { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 21 * TILE, y: 3 * TILE, lines: [] },
+      { id: 'kit', name: 'Kit', kind: 'kit', place: 'city', x: 37 * TILE, y: 19 * TILE, lines: [] },
       { id: 'jan', name: 'Jan', kind: 'jan', place: 'mall', x: 18 * TILE, y: 10 * TILE, lines: [] },
       { id: 'oak', name: 'Oak', kind: 'oak', place: 'city', x: 106 * TILE, y: 7 * TILE, lines: [] },
       { id: 'ash', name: 'Ash', kind: 'ash', place: 'city', x: 76 * TILE, y: 62 * TILE, lines: [] }
     ];
     poles = [
-      { id: 'bus-plaza', kind: 'bus', name: 'Plaza', x: 12 * TILE, y: 18 * TILE },
-      { id: 'bus-east', kind: 'bus', name: 'East Side', x: 36 * TILE, y: 18 * TILE },
-      { id: 'bus-base', kind: 'bus', name: 'North Base', x: 22 * TILE, y: 6 * TILE },
-      { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 22 * TILE, y: 26 * TILE },
-      { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 56 * TILE, y: 34 * TILE },
-      { id: 'bus-village', kind: 'bus', name: 'Village', x: 98 * TILE, y: 18 * TILE },
-      { id: 'bus-farm', kind: 'bus', name: 'Farm', x: 56 * TILE, y: 52 * TILE },
-      { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 18 * TILE },
-      { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 26 * TILE },
-      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 26 * TILE, y: 6 * TILE },
-      { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 34 * TILE, y: 26 * TILE },
-      { id: 'taxi-village', kind: 'taxi', name: 'Village', x: 100 * TILE, y: 10 * TILE },
-      { id: 'taxi-farm', kind: 'taxi', name: 'Farm', x: 80 * TILE, y: 50 * TILE }
+      { id: 'bus-plaza', kind: 'bus', name: 'Plaza', x: 13 * TILE, y: 15 * TILE },
+      { id: 'bus-east', kind: 'bus', name: 'East Side', x: 37 * TILE, y: 15 * TILE },
+      { id: 'bus-base', kind: 'bus', name: 'North Base', x: 21 * TILE, y: 7 * TILE },
+      { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 21 * TILE, y: 27 * TILE },
+      { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 55 * TILE, y: 27 * TILE },
+      { id: 'bus-village', kind: 'bus', name: 'Village', x: 97 * TILE, y: 15 * TILE },
+      { id: 'bus-farm', kind: 'bus', name: 'Farm', x: 55 * TILE, y: 53 * TILE },
+      { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 19 * TILE },
+      { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 27 * TILE },
+      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 25 * TILE, y: 7 * TILE },
+      { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 33 * TILE, y: 27 * TILE },
+      { id: 'taxi-village', kind: 'taxi', name: 'Village', x: 101 * TILE, y: 7 * TILE },
+      { id: 'taxi-farm', kind: 'taxi', name: 'Farm', x: 80 * TILE, y: 53 * TILE }
     ];
     mallDoors = [
       { id: 'n', ox: 32, oy: 27, ow: 4, oh: 2, ix: 20, iy: 0, iw: 8, ih: 2, sx: 22, sy: 2, outX: 33, outY: 26 },
       { id: 's', ox: 32, oy: 43, ow: 4, oh: 2, ix: 20, iy: 30, iw: 8, ih: 2, sx: 22, sy: 29, outX: 33, outY: 43 },
-      { id: 'w', ox: 13, oy: 33, ow: 2, oh: 4, ix: 0, iy: 13, iw: 2, ih: 6, sx: 2, sy: 16, outX: 12, outY: 34 },
-      { id: 'e', ox: 55, oy: 33, ow: 2, oh: 4, ix: 46, iy: 13, iw: 2, ih: 6, sx: 44, sy: 16, outX: 55, outY: 34 }
+      { id: 'w', ox: 13, oy: 34, ow: 1, oh: 2, ix: 0, iy: 13, iw: 2, ih: 6, sx: 2, sy: 16, outX: 12, outY: 34 },
+      { id: 'e', ox: 55, oy: 34, ow: 1, oh: 2, ix: 46, iy: 13, iw: 2, ih: 6, sx: 44, sy: 16, outX: 55, outY: 34 }
     ];
     bootWalkers();
     bootCars();
@@ -406,8 +406,8 @@
 
   function carSize(c) {
     var horiz = c.dir === 1 || c.dir === 2;
-    var long = c.kind === 'bus' ? 14 : 10;
-    var short = 6;
+    var long = c.kind === 'bus' ? 18 : c.kind === 'taxi' ? 14 : 12;
+    var short = c.kind === 'bus' ? 8 : 7;
     return horiz ? { w: long, h: short } : { w: short, h: long };
   }
 
@@ -659,12 +659,18 @@
   function drawTile(id, sx, sy) {
     var gx = sx - cam.x;
     var gy = sy - cam.y;
-    var i;
+    var i, tx, ty;
     if (gx > VW || gy > VH || gx + TILE < 0 || gy + TILE < 0) return;
     if (id === 1) pix(gx, gy, TILE, TILE, C.road);
     else if (id === 9) {
       pix(gx, gy, TILE, TILE, C.hwy);
-      pix(gx + 7, gy + 7, 2, 2, C.line);
+      tx = Math.floor(sx / TILE);
+      ty = Math.floor(sy / TILE);
+      if ((ty === 9 || ty === 17 || ty === 25 || ty === 51) && tx % 2 === 0) {
+        pix(gx + 1, gy + 7, TILE - 2, 2, C.line);
+      } else if ((tx === 11 || tx === 57 || tx === 99) && ty % 2 === 0) {
+        pix(gx + 7, gy + 1, 2, TILE - 2, C.line);
+      }
     } else if (id === 5) {
       pix(gx, gy, TILE, TILE, C.road);
       for (i = 0; i < 4; i++) pix(gx + 2 + i * 3, gy + 1, 2, TILE - 2, C.white);
@@ -689,10 +695,11 @@
   }
 
   function drawPole(p) {
-    var gx = p.x - cam.x;
-    var gy = p.y - cam.y;
-    pix(gx, gy - 6, 1, 8, '#222');
-    pix(gx, gy - 8, 2, 2, p.kind === 'bus' ? C.bus : C.taxi);
+    var gx = Math.round(p.x - cam.x);
+    var gy = Math.round(p.y - cam.y);
+    pix(gx, gy + 6, 3, 2, '#3a2418');
+    pix(gx + 1, gy - 8, 1, 14, '#222');
+    pix(gx, gy - 10, 3, 3, p.kind === 'bus' ? C.bus : C.taxi);
   }
 
   function drawForcefield() {
@@ -824,11 +831,44 @@
   }
 
   function drawCar(c) {
-    var gx = c.x - cam.x;
-    var gy = c.y - cam.y;
     var s = carSize(c);
-    if (gx + s.w < 0 || gy + s.h < 0 || gx - s.w > VW || gy - s.h > VH) return;
-    pix(gx - s.w / 2, gy - s.h / 2, s.w, s.h, carColor(c.kind));
+    var x = Math.round(c.x - cam.x - s.w / 2);
+    var y = Math.round(c.y - cam.y - s.h / 2);
+    var horiz = c.dir === 1 || c.dir === 2;
+    var col = carColor(c.kind);
+    var win = '#c5e4f4';
+    var light = C.white;
+    var tail = C.verm;
+    if (x + s.w < 0 || y + s.h < 0 || x > VW || y > VH) return;
+    pix(x, y, s.w, s.h, col);
+    if (c.kind === 'taxi') {
+      pix(x + (horiz ? s.w / 2 - 2 : 2), y + (horiz ? -2 : s.h / 2 - 2), horiz ? 4 : 3, horiz ? 2 : 4, C.taxi);
+      pix(x + (horiz ? s.w / 2 - 1 : 3), y + (horiz ? -3 : s.h / 2 - 1), horiz ? 2 : 1, horiz ? 1 : 2, '#222');
+    }
+    if (horiz) {
+      pix(x + 2, y + 1, s.w - 5, 3, win);
+      pix(x + (c.dir === 2 ? s.w - 2 : 0), y + 2, 2, 3, light);
+      pix(x + (c.dir === 2 ? 0 : s.w - 2), y + 2, 2, 2, tail);
+      pix(x + 2, y + s.h - 2, 3, 2, '#222');
+      pix(x + s.w - 5, y + s.h - 2, 3, 2, '#222');
+      if (c.kind === 'bus') {
+        pix(x + 6, y + 1, 1, 3, col);
+        pix(x + 11, y + 1, 1, 3, col);
+      }
+    } else {
+      pix(x + 1, y + 2, 3, s.h - 5, win);
+      pix(x + 2, y + (c.dir === 0 ? s.h - 2 : 0), 3, 2, light);
+      pix(x + 2, y + (c.dir === 0 ? 0 : s.h - 2), 2, 2, tail);
+      pix(x, y + 2, 2, 3, '#222');
+      pix(x + s.w - 2, y + 2, 2, 3, '#222');
+      pix(x, y + s.h - 5, 2, 3, '#222');
+      pix(x + s.w - 2, y + s.h - 5, 2, 3, '#222');
+      if (c.kind === 'bus') {
+        pix(x + 1, y + 6, 3, 1, col);
+        pix(x + 1, y + 11, 3, 1, col);
+      }
+    }
+    if (c.kind === 'car') pix(x + 1, y + 1, 2, 2, '#5a6270');
   }
 
   function drawVehicle() {
@@ -897,8 +937,8 @@
     if (place === 'city') {
       pix(32 * TILE - cam.x, 28 * TILE - cam.y, 4 * TILE, TILE, '#555555');
       pix(32 * TILE - cam.x, 42 * TILE - cam.y, 4 * TILE, TILE, '#555555');
-      pix(14 * TILE - cam.x, 33 * TILE - cam.y, TILE, 4 * TILE, '#555555');
-      pix(54 * TILE - cam.x, 33 * TILE - cam.y, TILE, 4 * TILE, '#555555');
+      pix(14 * TILE - cam.x, 34 * TILE - cam.y, TILE, 2 * TILE, '#555555');
+      pix(54 * TILE - cam.x, 34 * TILE - cam.y, TILE, 2 * TILE, '#555555');
       mallDoors.forEach(function (d) {
         pix(d.ox * TILE - cam.x, d.oy * TILE - cam.y, d.ow * TILE, d.oh * TILE, '#555555');
       });
@@ -1360,18 +1400,22 @@
     } else if (scene === 'ride') {
       updateRide(dt);
       updateCars(dt);
+      updateWalkers(dt);
       drawWorld();
     } else if (scene === 'dialog' || scene === 'pick') {
       updateCars(dt);
+      updateWalkers(dt);
       drawWorld();
     } else if (scene === 'end') {
       updateCars(dt);
+      updateWalkers(dt);
       drawWorld();
     } else if (scene === 'title') {
       cam.x = 180 + Math.sin(time * 0.2) * 16;
       cam.y = 200;
       if (!map.length) buildMap();
       updateCars(dt);
+      updateWalkers(dt);
       drawWorld();
     }
     actEdge = false;
