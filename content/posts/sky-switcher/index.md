@@ -8,8 +8,6 @@ tags = ['roblox']
 categories = ['roblox']
 +++
 
-## Sky Switcher
-
 Sky Switcher is a Mac app for changing the Roblox sky. Pick a sky you already have, or drop your own pictures on Up, Down, Left, Right, Front, and Back.
 
 ### Install
