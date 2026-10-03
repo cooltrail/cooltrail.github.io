@@ -232,14 +232,14 @@
       { id: 'bus-plaza', kind: 'bus', name: 'Plaza', x: 13 * TILE, y: 15 * TILE },
       { id: 'bus-east', kind: 'bus', name: 'East Side', x: 37 * TILE, y: 15 * TILE },
       { id: 'bus-base', kind: 'bus', name: 'North Base', x: 21 * TILE, y: 7 * TILE },
-      { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 21 * TILE, y: 27 * TILE },
-      { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 55 * TILE, y: 27 * TILE },
+      { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 26 * TILE, y: 27 * TILE },
+      { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 59 * TILE, y: 36 * TILE },
       { id: 'bus-village', kind: 'bus', name: 'Village', x: 97 * TILE, y: 15 * TILE },
       { id: 'bus-farm', kind: 'bus', name: 'Farm', x: 55 * TILE, y: 53 * TILE },
       { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 19 * TILE },
       { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 27 * TILE },
       { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 25 * TILE, y: 7 * TILE },
-      { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 33 * TILE, y: 27 * TILE },
+      { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 39 * TILE, y: 27 * TILE },
       { id: 'taxi-village', kind: 'taxi', name: 'Village', x: 101 * TILE, y: 7 * TILE },
       { id: 'taxi-farm', kind: 'taxi', name: 'Farm', x: 80 * TILE, y: 53 * TILE }
     ];
@@ -376,6 +376,7 @@
           x: path[pi].x,
           y: path[pi].y,
           dir: 2,
+          stuck: 0,
           spd: kind === 'taxi' ? 168 : kind === 'bus' ? 150 : 158
         };
         tries = 0;
@@ -389,19 +390,15 @@
         cars.push(c);
       }
     }
-    add(makeLoop(10, 10, 58, 24), 3, 0);
+    add(makeLoop(10, 10, 58, 24), 2, 0);
     add(makeLoop(22, 10, 36, 16), 1, 1);
-    add(makeLoop(10, 10, 24, 16), 1, 2);
-    add(makeLoop(34, 10, 58, 16), 1, 0);
-    add(makeLoop(10, 18, 36, 24), 1, 1);
-    add(makeLoop(34, 18, 58, 24), 1, 2);
-    add(makeVertShuttle(12, 10, 26, 44), 1, 0);
-    add(makeVertShuttle(58, 56, 26, 44), 1, 1);
-    add(makeLoop(10, 10, 98, 50), 3, 0);
-    add(makeLoop(56, 18, 98, 50), 2, 1);
-    add(makeVertShuttle(12, 10, 46, 76), 1, 2);
-    add(makeVertShuttle(58, 56, 46, 76), 1, 0);
-    add(makeVertShuttle(100, 98, 8, 76), 2, 1);
+    add(makeVertShuttle(12, 10, 26, 44), 1, 2);
+    add(makeVertShuttle(58, 56, 26, 44), 1, 0);
+    add(makeLoop(56, 10, 98, 18), 2, 1);
+    add(makeLoop(56, 18, 98, 50), 2, 2);
+    add(makeVertShuttle(12, 10, 46, 76), 1, 0);
+    add(makeVertShuttle(58, 56, 46, 76), 1, 1);
+    add(makeVertShuttle(100, 98, 8, 76), 2, 2);
   }
 
   function carSize(c) {
@@ -413,18 +410,25 @@
 
   function carHits(c, nx, ny, skip) {
     var a = carSize(c);
-    var i, o, b, pad = 4;
+    var i, o, b, ahead;
+    var fdx = c.dir === 2 ? 1 : c.dir === 1 ? -1 : 0;
+    var fdy = c.dir === 0 ? 1 : c.dir === 3 ? -1 : 0;
     for (i = 0; i < cars.length; i++) {
       if (i === skip) continue;
       o = cars[i];
       b = carSize(o);
-      if (aabb(nx - a.w / 2, ny - a.h / 2, a.w + pad, a.h + pad, o.x - b.w / 2, o.y - b.h / 2, b.w, b.h)) return true;
+      if (!aabb(nx - a.w / 2, ny - a.h / 2, a.w + 2, a.h + 2, o.x - b.w / 2, o.y - b.h / 2, b.w, b.h)) continue;
+      ahead = (o.x - c.x) * fdx + (o.y - c.y) * fdy;
+      if (ahead > 0) return true;
     }
     if (scene === 'ride' && ride.vehicle) {
       o = ride.vehicle;
       o.dir = o.dir || c.dir;
       b = carSize(o);
-      if (aabb(nx - a.w / 2, ny - a.h / 2, a.w + pad, a.h + pad, o.x - b.w / 2, o.y - b.h / 2, b.w, b.h)) return true;
+      if (aabb(nx - a.w / 2, ny - a.h / 2, a.w + 2, a.h + 2, o.x - b.w / 2, o.y - b.h / 2, b.w, b.h)) {
+        ahead = (o.x - c.x) * fdx + (o.y - c.y) * fdy;
+        if (ahead > 0) return true;
+      }
     }
     return false;
   }
@@ -451,9 +455,12 @@
       else c.dir = dy > 0 ? 0 : 3;
       nx = c.x + (dx / dist) * c.spd * dt;
       ny = c.y + (dy / dist) * c.spd * dt;
-      if (!carHits(c, nx, ny, i)) {
+      if (!carHits(c, nx, ny, i) || c.stuck > 0.4) {
         c.x = nx;
         c.y = ny;
+        c.stuck = 0;
+      } else {
+        c.stuck += dt;
       }
     }
   }
