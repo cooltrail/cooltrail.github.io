@@ -1,0 +1,9 @@
+Sky Switcher for Windows
+
+1. Right-click the zip, open Properties, check Unblock, and click OK.
+2. Unzip it.
+3. Double-click Sky Switcher.bat.
+4. If Windows says it protected your PC, click More info, then Run anyway.
+5. Quit Roblox, then pick a sky or make your own.
+
+If you use Bloxstrap or Fishstrap, open the game from there after you switch skies.
