@@ -222,7 +222,7 @@ function Install-Textures([string]$SourceDir, $DestDirs) {
     foreach ($face in $script:Faces) {
         $file = Join-Path $SourceDir "sky512_$face.tex"
         if (-not (Test-Path -LiteralPath $file)) {
-            throw "$SourceDir is missing sky512_$face.tex."
+            throw "Some sides are still empty. Drop a picture on the empty panels, then click Save my sky."
         }
     }
     if (@($DestDirs).Count -eq 0) {
@@ -373,6 +373,13 @@ function Test-SkyFolder([string]$Folder) {
     return $true
 }
 
+function Test-AnyFace([string]$Folder) {
+    foreach ($face in $script:Faces) {
+        if (Test-Path -LiteralPath (Join-Path $Folder "sky512_$face.tex")) { return $true }
+    }
+    return $false
+}
+
 function Get-PreviewPath([string]$Folder) {
     foreach ($name in @("! SCREENSHOT.png", "SCREENSHOT.png", "screenshot.png")) {
         $path = Join-Path $Folder $name
@@ -389,7 +396,10 @@ function Copy-SkyFolder([string]$Folder, [string]$Name) {
     if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     foreach ($face in $script:Faces) {
-        Copy-Item -LiteralPath (Join-Path $Folder "sky512_$face.tex") -Destination (Join-Path $dest "sky512_$face.tex")
+        $src = Join-Path $Folder "sky512_$face.tex"
+        if (Test-Path -LiteralPath $src) {
+            Copy-Item -LiteralPath $src -Destination (Join-Path $dest "sky512_$face.tex")
+        }
     }
     $shot = Get-PreviewPath $Folder
     if ($shot) { Copy-Item -LiteralPath $shot -Destination (Join-Path $dest (Split-Path -Leaf $shot)) }
@@ -407,7 +417,7 @@ function Get-SkyEntries {
     foreach ($root in $roots) {
         if (-not (Test-Path -LiteralPath $root)) { continue }
         foreach ($dir in @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)) {
-            if (Test-SkyFolder $dir.FullName) { $map[$dir.Name] = $dir.FullName }
+            if (Test-AnyFace $dir.FullName) { $map[$dir.Name] = $dir.FullName }
         }
     }
     $entries = @()
@@ -499,7 +509,11 @@ function Show-Sky($Sky) {
         $script:slots[$face].Panel.BackColor = [System.Drawing.Color]::White
         $file = Join-Path $Sky.Path "sky512_$face.tex"
         if (Test-Path -LiteralPath $file) {
-            Set-SlotImage $face (Load-ImageFile $file)
+            try {
+                Set-SlotImage $face (Load-ImageFile $file)
+            } catch {
+                Set-SlotImage $face $null
+            }
         } else {
             Set-SlotImage $face $null
         }
@@ -525,7 +539,11 @@ function Update-List([string]$SelectName) {
     for ($i = 0; $i -lt $script:skies.Count; $i++) {
         $sky = $script:skies[$i]
         $label = $sky.Name
-        $hash = (Get-FileHash -LiteralPath (Join-Path $sky.Path "sky512_up.tex") -Algorithm SHA256).Hash
+        $upFile = Join-Path $sky.Path "sky512_up.tex"
+        $hash = $null
+        if (Test-Path -LiteralPath $upFile) {
+            $hash = (Get-FileHash -LiteralPath $upFile -Algorithm SHA256).Hash
+        }
         if ($installed -and $hash -eq $installed) {
             $label = "$($sky.Name) - in use"
             $matchIndex = $i
@@ -552,12 +570,12 @@ function Import-Paths($Paths) {
     $names = @()
     foreach ($path in @($Paths)) {
         if (-not (Test-Path -LiteralPath $path -PathType Container)) { continue }
-        if (Test-SkyFolder $path) {
+        if (Test-AnyFace $path) {
             $names += (Copy-SkyFolder $path (Split-Path -Leaf $path))
             continue
         }
         foreach ($child in @(Get-ChildItem -LiteralPath $path -Directory -ErrorAction SilentlyContinue)) {
-            if (Test-SkyFolder $child.FullName) {
+            if (Test-AnyFace $child.FullName) {
                 $names += (Copy-SkyFolder $child.FullName $child.Name)
             }
         }
@@ -578,11 +596,12 @@ function Import-Paths($Paths) {
         }
     }
     if ($names.Count -eq 0) {
-        $script:status.Text = "That drop needs a folder of sky512 tex files, or all six files together."
+        New-BlankSky
+        $script:status.Text = "No sky files in that drop, and that's fine. Drop pictures on the empty panels."
         return
     }
     Update-List $names[-1]
-    $script:status.Text = "Added $($names -join ', '). Click Use this sky to switch."
+    $script:status.Text = "Added $($names -join ', '). Empty sides can stay empty. Drop a picture on a panel to fill one."
 }
 
 function Open-Face([string]$Code) {
@@ -623,50 +642,90 @@ function Save-SquarePng($Image, [string]$Path) {
     $bitmap.Dispose()
 }
 
-function Save-CustomSky {
+function Get-EmptyPanelTitles {
     $missing = @()
     foreach ($face in $script:FaceTitles) {
         if (-not $script:slots[$face.Code].Box.Image) { $missing += $face.Title }
     }
-    if ($missing.Count -gt 0) {
-        $script:status.Text = "Still need a picture for $($missing -join ', ')."
+    return $missing
+}
+
+function Save-PanelImages([string]$Dest) {
+    if (Test-Path -LiteralPath $Dest) { Remove-Item -LiteralPath $Dest -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $Dest | Out-Null
+    foreach ($face in $script:Faces) {
+        $image = $script:slots[$face].Box.Image
+        if (-not $image) { continue }
+        $out = Join-Path $Dest "sky512_$face.tex"
+        Save-SquarePng $image $out
+        if ($face -eq "up") {
+            Copy-Item -LiteralPath $out -Destination (Join-Path $Dest "! SCREENSHOT.png") -Force
+        }
+    }
+}
+
+function Save-CustomSky {
+    $filled = @($script:Faces | Where-Object { $script:slots[$_].Box.Image })
+    if ($filled.Count -eq 0) {
+        $script:status.Text = "The panels are empty, and that's fine. Drop a picture on one when you want it."
         return
     }
     $name = Ask-Name
     if (-not $name) { return }
     $safe = [regex]::Replace($name, '[<>:"/\\|?*]', "-").Trim()
     if (-not $safe) { return }
-    $dest = Join-Path $script:Library $safe
     New-Item -ItemType Directory -Force -Path $script:Library | Out-Null
-    if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Recurse -Force }
-    New-Item -ItemType Directory -Force -Path $dest | Out-Null
-    foreach ($face in $script:Faces) {
-        $out = Join-Path $dest "sky512_$face.tex"
-        Save-SquarePng $script:slots[$face].Box.Image $out
-        if ($face -eq "up") {
-            Copy-Item -LiteralPath $out -Destination (Join-Path $dest "! SCREENSHOT.png") -Force
-        }
-    }
+    Save-PanelImages (Join-Path $script:Library $safe)
     Update-List $safe
-    $script:status.Text = "Saved $safe. Click Use this sky to put it in Roblox."
+    $empty = @(Get-EmptyPanelTitles)
+    if ($empty.Count -eq 0) {
+        $script:status.Text = "Saved $safe. Click Use this sky to put it in Roblox."
+    } else {
+        $script:status.Text = "Saved $safe. $($empty -join ', ') can stay empty. Drop a picture on a panel when you want one."
+    }
 }
 
 function Use-SelectedSky {
     $index = $script:list.SelectedIndex
-    if ($index -lt 0 -or $index -ge $script:skies.Count) { return }
-    $sky = $script:skies[$index]
+    $selected = $null
+    if ($index -ge 0 -and $index -lt $script:skies.Count) { $selected = $script:skies[$index] }
+    $folder = $null
+    $skyName = $null
+    if ($selected -and (Test-SkyFolder $selected.Path)) {
+        $folder = $selected.Path
+        $skyName = $selected.Name
+    } else {
+        $empty = @(Get-EmptyPanelTitles)
+        if ($empty.Count -gt 0) {
+            $script:status.Text = "$($empty -join ', ') can stay empty. Drop a picture on those panels, then click Use this sky."
+            return
+        }
+        if ($selected) {
+            $folder = $selected.Path
+            $skyName = $selected.Name
+            Save-PanelImages $folder
+        } else {
+            $name = Ask-Name
+            if (-not $name) { return }
+            $skyName = [regex]::Replace($name, '[<>:"/\\|?*]', "-").Trim()
+            if (-not $skyName) { return }
+            New-Item -ItemType Directory -Force -Path $script:Library | Out-Null
+            $folder = Join-Path $script:Library $skyName
+            Save-PanelImages $folder
+        }
+    }
     if (Test-RobloxRunning) {
         $answer = [System.Windows.Forms.MessageBox]::Show(
             "Roblox is open. It has to quit before the sky can change.",
-            "Quit Roblox and use $($sky.Name)?",
+            "Quit Roblox and use ${skyName}?",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
             [System.Windows.Forms.MessageBoxIcon]::Warning
         )
         if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) { return }
         Stop-Roblox
     }
-    $message = Install-Sky $sky.Path
-    Update-List $sky.Name
+    $message = Install-Sky $folder
+    Update-List $skyName
     $script:status.Text = $message
 }
 
@@ -856,7 +915,12 @@ function Start-Window {
         $index = $script:list.SelectedIndex
         if ($index -lt 0 -or $index -ge $script:skies.Count) { return }
         Show-Sky $script:skies[$index]
-        $script:status.Text = "Showing the pictures in $($script:skies[$index].Name). Click one, then Delete to remove that picture."
+        $empty = @(Get-EmptyPanelTitles)
+        if ($empty.Count -eq 0) {
+            $script:status.Text = "Showing the pictures in $($script:skies[$index].Name). Click one, then Delete to remove that picture."
+        } else {
+            $script:status.Text = "$($empty -join ', ') can stay empty. Drop a picture on a panel to fill one."
+        }
     })
     $script:list.Add_DoubleClick({
         try { Use-SelectedSky } catch { Show-Info $_.Exception.Message }
