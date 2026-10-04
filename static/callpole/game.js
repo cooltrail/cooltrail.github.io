@@ -1172,7 +1172,7 @@
         }
       });
     }
-    if (scene !== 'ride' || ride.phase !== 'go') {
+    if (!nuked && (scene !== 'ride' || ride.phase !== 'go')) {
       drawAnimal(player.x, player.y, 'fox', player.dir, quest === 'have' || quest === 'build' ? C.paper : C.accent, player.walk);
     }
     drawVehicle();
