@@ -63,7 +63,8 @@
     field: '#c4b45a',
     dirt: '#8a6a48',
     hwy: '#232834',
-    tree: '#2a4e24'
+    tree: '#2a4e24',
+    tarmac: '#5a624c'
   };
 
   var keys = {};
@@ -194,10 +195,10 @@
     addBuilding(26, 20, 7, 3);
     addBuilding(38, 20, 9, 3);
     addBuilding(48, 20, 7, 3);
-    addBuilding(1, 28, 8, 15, '#6a7a88');
+    addBuilding(1, 28, 8, 15);
     addBuilding(14, 28, 41, 15);
-    fill(2, 43, 6, 2, 4);
     paintCountry();
+    paintBase();
     paintCrosswalks();
     cityMap = map;
     cityBuildings = buildings;
@@ -223,7 +224,7 @@
     npcs = [
       { id: 'mira', name: 'Mira', kind: 'mira', place: 'city', x: 16 * TILE, y: 20 * TILE, lines: [] },
       { id: 'dash', name: 'Dash', kind: 'dash', place: 'city', x: 9 * TILE, y: 15 * TILE, lines: [] },
-      { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 4 * TILE, y: 43 * TILE, lines: [] },
+      { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 22 * TILE, y: 67 * TILE, lines: [] },
       { id: 'kit', name: 'Kit', kind: 'kit', place: 'city', x: 37 * TILE, y: 19 * TILE, lines: [] },
       { id: 'jan', name: 'Jan', kind: 'jan', place: 'mall', x: 18 * TILE, y: 10 * TILE, lines: [] },
       { id: 'oak', name: 'Oak', kind: 'oak', place: 'city', x: 106 * TILE, y: 7 * TILE, lines: [] },
@@ -232,14 +233,14 @@
     poles = [
       { id: 'bus-plaza', kind: 'bus', name: 'Plaza', x: 13 * TILE, y: 15 * TILE },
       { id: 'bus-east', kind: 'bus', name: 'East Side', x: 37 * TILE, y: 15 * TILE },
-      { id: 'bus-base', kind: 'bus', name: 'South Base', x: 9 * TILE, y: 27 * TILE },
+      { id: 'bus-base', kind: 'bus', name: 'South Base', x: 9 * TILE, y: 53 * TILE },
       { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 26 * TILE, y: 27 * TILE },
       { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 59 * TILE, y: 36 * TILE },
       { id: 'bus-village', kind: 'bus', name: 'Village', x: 97 * TILE, y: 15 * TILE },
       { id: 'bus-farm', kind: 'bus', name: 'Farm', x: 55 * TILE, y: 53 * TILE },
       { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 19 * TILE },
       { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 27 * TILE },
-      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 8 * TILE, y: 43 * TILE },
+      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 13 * TILE, y: 53 * TILE },
       { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 39 * TILE, y: 27 * TILE },
       { id: 'taxi-village', kind: 'taxi', name: 'Village', x: 101 * TILE, y: 7 * TILE },
       { id: 'taxi-farm', kind: 'taxi', name: 'Farm', x: 80 * TILE, y: 53 * TILE }
@@ -284,6 +285,28 @@
     trees.forEach(function (t) { plant(t[0], t[1]); plant(t[0] + 1, t[1]); });
   }
 
+  function paintBase() {
+    var wall = '#3a4234';
+    var tower = '#2a3028';
+    fill(8, 54, 38, 20, 12);
+    addBuilding(8, 54, 38, 2, wall);
+    addBuilding(8, 72, 38, 2, wall);
+    addBuilding(8, 56, 2, 16, wall);
+    addBuilding(44, 56, 2, 16, wall);
+    fill(10, 54, 3, 2, 9);
+    addBuilding(8, 54, 2, 3, tower);
+    addBuilding(44, 54, 2, 3, tower);
+    addBuilding(8, 71, 2, 3, tower);
+    addBuilding(44, 71, 2, 3, tower);
+    fill(10, 54, 3, 16, 1);
+    fill(13, 64, 16, 2, 1);
+    fill(20, 66, 8, 5, 4);
+    addBuilding(16, 57, 12, 6, '#4a5840');
+    addBuilding(30, 57, 10, 4, '#3e4a38');
+    addBuilding(30, 63, 10, 4, '#3e4a38');
+    addBuilding(13, 67, 6, 4, '#32363a');
+  }
+
   function paintCrosswalks() {
     var vx = [10, 22, 34, 56];
     var hy = [8, 16, 24];
@@ -314,7 +337,8 @@
       [18, 19], [40, 19], [8, 23], [40, 23],
       [6, 27], [50, 27], [13, 34], [55, 34],
       [70, 12], [90, 7], [106, 15], [92, 28],
-      [66, 54], [92, 64], [110, 20], [80, 66]
+      [66, 54], [92, 64], [110, 20], [80, 66],
+      [24, 66], [36, 68]
     ];
     var mallSpots = [
       [16, 12], [24, 16], [32, 12], [20, 20], [16, 8], [12, 18], [32, 18], [16, 22]
@@ -393,7 +417,7 @@
     }
     add(makeLoop(10, 10, 58, 24), 2, 0);
     add(makeLoop(56, 10, 98, 50), 2, 1);
-    add(makeVertShuttle(12, 10, 46, 76), 1, 2);
+    add(makeVertShuttle(12, 10, 46, 52), 1, 2);
     add(makeVertShuttle(100, 98, 10, 76), 2, 0);
   }
 
@@ -515,7 +539,7 @@
         'Copy that. Forcefield coming up. Stay on the pad and watch the sky.'
       ];
     } else if (quest === 'idle' || quest === 'hunt') {
-      npc('rex').lines = ['South Base. Wolf on duty. We need all six blueprint pieces. You have ' + n + '.'];
+      npc('rex').lines = ['South Base. Compound under the city. We need all six blueprint pieces. You have ' + n + '.'];
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
@@ -600,7 +624,7 @@
 
   function pedWalk(px, py) {
     var id = tileAt(px, py);
-    return id === 0 || id === 4 || id === 5 || id === 6 || id === 7 || id === 10 || id === 11;
+    return id === 0 || id === 4 || id === 5 || id === 6 || id === 7 || id === 10 || id === 11 || id === 12;
   }
 
   function walkerOk(x, y) {
@@ -696,6 +720,7 @@
       pix(gx + 4, gy + 3, 8, 6, '#3d6a30');
     } else if (id === 10) pix(gx, gy, TILE, TILE, C.dirt);
     else if (id === 11) pix(gx, gy, TILE, TILE, ((sx / TILE) % 2 === 0) ? C.field : '#b8a44c');
+    else if (id === 12) pix(gx, gy, TILE, TILE, ((sx + sy) / TILE) % 2 === 0 ? C.tarmac : '#4e5642');
     else pix(gx, gy, TILE, TILE, C.walk);
   }
 
@@ -713,8 +738,8 @@
 
   function drawForcefield() {
     if (lattice <= 0) return;
-    var ex = 5 * TILE - cam.x + 8;
-    var ey = 40 * TILE - cam.y + 8;
+    var ex = 24 * TILE - cam.x;
+    var ey = 68 * TILE - cam.y;
     var r = 20 + lattice * 180;
     ctx.strokeStyle = 'rgba(126,200,255,' + (0.35 + lattice * 0.4) + ')';
     ctx.lineWidth = 2;
@@ -893,6 +918,7 @@
     if (id === 8) return C.tree;
     if (id === 10) return C.dirt;
     if (id === 11) return C.field;
+    if (id === 12) return '#6a7a50';
     return C.walk;
   }
 
