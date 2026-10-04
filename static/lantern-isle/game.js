@@ -1665,12 +1665,12 @@
   }
 
   var typed = '';
-  var NUKE_CODE = 'HowDoITurnThisOn';
+  var NUKE_CODE = 'howdoiturnthison';
 
   window.addEventListener('keydown', function (e) {
     keys[e.key] = true;
     if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      typed = (typed + e.key).slice(-NUKE_CODE.length);
+      typed = (typed + e.key.toLowerCase()).slice(-NUKE_CODE.length);
       if (typed === NUKE_CODE) {
         typed = '';
         ensureAudio();
