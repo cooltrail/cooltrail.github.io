@@ -686,26 +686,32 @@
     if (nukeLeft <= 0) startNuke();
   }
 
-  function startNuke() {
-    if (quest === 'saved' || lattice >= 1) {
+  function startNuke(force) {
+    if (!force && (quest === 'saved' || lattice >= 1)) {
       quest = 'saved';
       lattice = 1;
       save();
       drawHud();
       return;
     }
+    if (nuked || scene === 'nuke') return;
     nuked = true;
     nukeT = 0;
     flash = 1;
     shake = 1;
+    lattice = 0;
+    nukeLeft = 0;
     ride.vehicle = null;
     ride.path = null;
     ride.phase = null;
+    show(ui.title, false);
     show(ui.dialog, false);
     show(ui.card, false);
     show(ui.prompt, false);
+    show(ui.hud, true);
     scene = 'nuke';
     save();
+    drawHud();
     beep(70, 0.9, 0.09, 'sawtooth');
     beep(36, 1.3, 0.06, 'triangle');
   }
@@ -1658,8 +1664,19 @@
     beep(392, 0.08, 0.04, 'sine');
   }
 
+  var typed = '';
+  var NUKE_CODE = 'HowDoITurnThisOn';
+
   window.addEventListener('keydown', function (e) {
     keys[e.key] = true;
+    if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      typed = (typed + e.key).slice(-NUKE_CODE.length);
+      if (typed === NUKE_CODE) {
+        typed = '';
+        ensureAudio();
+        startNuke(true);
+      }
+    }
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].indexOf(e.key) >= 0) e.preventDefault();
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') {
       if (!e.repeat) {
