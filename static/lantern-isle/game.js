@@ -264,6 +264,7 @@
     bootWalkers();
     bootCars();
     if (!pieces.length) resetPieces();
+    settlePieces();
     refreshLines();
   }
 
@@ -503,13 +504,42 @@
 
   function resetPieces() {
     pieces = [
-      { id: 1, place: 'city', x: 18 * TILE, y: 21 * TILE, got: false },
-      { id: 2, place: 'city', x: 90 * TILE, y: 19 * TILE, got: false },
-      { id: 3, place: 'city', x: 9 * TILE, y: 13 * TILE, got: false },
-      { id: 4, place: 'city', x: 16 * TILE, y: 7 * TILE, got: false },
-      { id: 5, place: 'mall', x: 32 * TILE, y: 16 * TILE, got: false },
-      { id: 6, place: 'city', x: 80 * TILE, y: 64 * TILE, got: false }
+      { id: 1, place: 'city', x: 18 * TILE + 5, y: 21 * TILE + 5, got: false },
+      { id: 2, place: 'city', x: 88 * TILE + 5, y: 19 * TILE + 5, got: false },
+      { id: 3, place: 'city', x: 9 * TILE + 3, y: 15 * TILE + 5, got: false },
+      { id: 4, place: 'city', x: 16 * TILE + 5, y: 7 * TILE + 5, got: false },
+      { id: 5, place: 'mall', x: 31 * TILE + 5, y: 12 * TILE + 5, got: false },
+      { id: 6, place: 'city', x: 82 * TILE + 5, y: 64 * TILE + 5, got: false }
     ];
+  }
+
+  function pieceTileOk(placeName, px, py) {
+    var m = placeName === 'mall' ? mallMap : cityMap;
+    var tx = Math.floor(px / TILE);
+    var ty = Math.floor(py / TILE);
+    if (!m[ty] || tx < 0 || tx >= m[0].length) return false;
+    var id = m[ty][tx];
+    return id !== 3 && id !== 8;
+  }
+
+  function settlePieces() {
+    pieces.forEach(function (p) {
+      if (pieceTileOk(p.place, p.x, p.y) && pieceTileOk(p.place, p.x + 3, p.y + 3)) return;
+      var r, dx, dy, nx, ny;
+      for (r = 1; r <= 10; r++) {
+        for (dy = -r; dy <= r; dy++) {
+          for (dx = -r; dx <= r; dx++) {
+            nx = (Math.floor(p.x / TILE) + dx) * TILE + 5;
+            ny = (Math.floor(p.y / TILE) + dy) * TILE + 5;
+            if (pieceTileOk(p.place, nx, ny) && pieceTileOk(p.place, nx + 3, ny + 3)) {
+              p.x = nx;
+              p.y = ny;
+              return;
+            }
+          }
+        }
+      }
+    });
   }
 
   function pieceCount() {
@@ -1140,7 +1170,7 @@
       e = pieces[i];
       if (e.got || e.place !== place) continue;
       d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-      if (d < 16) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
+      if (d < 22) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
     }
     if (!near && energy <= 0) {
       ui.prompt.textContent = 'No energy · Find a shop';
