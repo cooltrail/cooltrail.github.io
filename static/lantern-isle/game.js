@@ -664,6 +664,53 @@
     return m + ':' + (r < 10 ? '0' : '') + r;
   }
 
+  var FONT5 = {
+    '0': [7, 5, 5, 5, 7],
+    '1': [2, 6, 2, 2, 7],
+    '2': [7, 1, 7, 4, 7],
+    '3': [7, 1, 7, 1, 7],
+    '4': [5, 5, 7, 1, 1],
+    '5': [7, 4, 7, 1, 7],
+    '6': [7, 4, 7, 5, 7],
+    '7': [7, 1, 1, 1, 1],
+    '8': [7, 5, 7, 5, 7],
+    '9': [7, 5, 7, 1, 7],
+    ':': [0, 2, 0, 2, 0],
+    'S': [7, 4, 7, 1, 7],
+    'A': [2, 5, 7, 5, 5],
+    'F': [7, 4, 6, 4, 4],
+    'E': [7, 4, 7, 4, 7]
+  };
+
+  function drawGlyph(ch, x, y, col, s) {
+    var rows = FONT5[ch];
+    var r, c;
+    if (!rows) return 4 * s;
+    for (r = 0; r < 5; r++) {
+      for (c = 0; c < 3; c++) {
+        if (rows[r] & (4 >> c)) pix(x + c * s, y + r * s, s, s, col);
+      }
+    }
+    return 4 * s;
+  }
+
+  function drawClock() {
+    if (scene === 'title') return;
+    var label = quest === 'saved' ? 'SAFE' : clockText();
+    var s = 2;
+    var w = label.length * 4 * s + 6;
+    var h = 5 * s + 6;
+    var x = Math.floor((VW - w) / 2);
+    var y = 4;
+    var hot = nukeLeft <= 60 && quest !== 'saved';
+    pix(x, y, w, h, hot ? C.verm : C.paper);
+    pix(x + 1, y + 1, w - 2, h - 2, hot && nukeLeft <= 15 ? '#3a1810' : C.ink);
+    var i;
+    var px = x + 4;
+    var col = hot ? C.verm : C.accent;
+    for (i = 0; i < label.length; i++) px += drawGlyph(label.charAt(i), px, y + 3, col, s);
+  }
+
   function drawHud() {
     ui.stamps.textContent = questLabel();
     ui.mute.textContent = muted ? 'Muted' : 'Sound';
@@ -1178,6 +1225,7 @@
     drawMinimap();
     cam.x = savedX;
     cam.y = savedY;
+    drawClock();
   }
 
   function updateWorld(dt) {

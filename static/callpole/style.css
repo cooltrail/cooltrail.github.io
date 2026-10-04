@@ -50,8 +50,9 @@ html, body {
   transform: translateX(-50%);
   width: min(100vw, calc(100dvh * 16 / 9));
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 0.4rem;
   padding: 0 0.9rem;
   pointer-events: none;
 }
@@ -102,27 +103,35 @@ html, body {
 #energy-wrap.empty { color: #d94a32; }
 
 #clock-wrap {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.45rem;
   background: #fff4d6;
   border: 3px solid #3a2418;
   border-radius: 999px;
-  padding: 0.22rem 0.55rem;
+  padding: 0.28rem 0.95rem;
   font-weight: 800;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
   color: #3a2418;
+  box-shadow: 0 3px 0 #d94a32;
 }
 
 #clock-wrap b {
   font-weight: 800;
-  letter-spacing: 0.02em;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
 }
 
 #clock-wrap.low { color: #d94a32; }
 #clock-wrap.empty { color: #d94a32; background: #ffe0c8; }
 
 #mute {
+  margin-left: auto;
   pointer-events: auto;
   font-family: inherit;
   font-weight: 700;
