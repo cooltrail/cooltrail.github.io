@@ -194,8 +194,9 @@
     addBuilding(26, 20, 7, 3);
     addBuilding(38, 20, 9, 3);
     addBuilding(48, 20, 7, 3);
-    addBuilding(1, 28, 8, 15);
+    addBuilding(1, 28, 8, 15, '#6a7a88');
     addBuilding(14, 28, 41, 15);
+    fill(2, 43, 6, 2, 4);
     paintCountry();
     paintCrosswalks();
     cityMap = map;
@@ -222,7 +223,7 @@
     npcs = [
       { id: 'mira', name: 'Mira', kind: 'mira', place: 'city', x: 16 * TILE, y: 20 * TILE, lines: [] },
       { id: 'dash', name: 'Dash', kind: 'dash', place: 'city', x: 9 * TILE, y: 15 * TILE, lines: [] },
-      { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 21 * TILE, y: 3 * TILE, lines: [] },
+      { id: 'rex', name: 'Rex', kind: 'rex', place: 'city', x: 4 * TILE, y: 43 * TILE, lines: [] },
       { id: 'kit', name: 'Kit', kind: 'kit', place: 'city', x: 37 * TILE, y: 19 * TILE, lines: [] },
       { id: 'jan', name: 'Jan', kind: 'jan', place: 'mall', x: 18 * TILE, y: 10 * TILE, lines: [] },
       { id: 'oak', name: 'Oak', kind: 'oak', place: 'city', x: 106 * TILE, y: 7 * TILE, lines: [] },
@@ -231,14 +232,14 @@
     poles = [
       { id: 'bus-plaza', kind: 'bus', name: 'Plaza', x: 13 * TILE, y: 15 * TILE },
       { id: 'bus-east', kind: 'bus', name: 'East Side', x: 37 * TILE, y: 15 * TILE },
-      { id: 'bus-base', kind: 'bus', name: 'North Base', x: 21 * TILE, y: 7 * TILE },
+      { id: 'bus-base', kind: 'bus', name: 'South Base', x: 9 * TILE, y: 27 * TILE },
       { id: 'bus-mall', kind: 'bus', name: 'Mall', x: 26 * TILE, y: 27 * TILE },
       { id: 'bus-mall-east', kind: 'bus', name: 'Mall East', x: 59 * TILE, y: 36 * TILE },
       { id: 'bus-village', kind: 'bus', name: 'Village', x: 97 * TILE, y: 15 * TILE },
       { id: 'bus-farm', kind: 'bus', name: 'Farm', x: 55 * TILE, y: 53 * TILE },
       { id: 'taxi-plaza', kind: 'taxi', name: 'Plaza', x: 20 * TILE, y: 19 * TILE },
       { id: 'taxi-south', kind: 'taxi', name: 'South Block', x: 8 * TILE, y: 27 * TILE },
-      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 25 * TILE, y: 7 * TILE },
+      { id: 'taxi-base', kind: 'taxi', name: 'Base Gate', x: 8 * TILE, y: 43 * TILE },
       { id: 'taxi-mall', kind: 'taxi', name: 'Mall', x: 39 * TILE, y: 27 * TILE },
       { id: 'taxi-village', kind: 'taxi', name: 'Village', x: 101 * TILE, y: 7 * TILE },
       { id: 'taxi-farm', kind: 'taxi', name: 'Farm', x: 80 * TILE, y: 53 * TILE }
@@ -391,14 +392,9 @@
       }
     }
     add(makeLoop(10, 10, 58, 24), 2, 0);
-    add(makeLoop(22, 10, 36, 16), 1, 1);
-    add(makeVertShuttle(12, 10, 26, 44), 1, 2);
-    add(makeVertShuttle(58, 56, 26, 44), 1, 0);
-    add(makeLoop(56, 10, 98, 18), 2, 1);
-    add(makeLoop(56, 18, 98, 50), 2, 2);
-    add(makeVertShuttle(12, 10, 46, 76), 1, 0);
-    add(makeVertShuttle(58, 56, 46, 76), 1, 1);
-    add(makeVertShuttle(100, 98, 8, 76), 2, 2);
+    add(makeLoop(56, 10, 98, 50), 2, 1);
+    add(makeVertShuttle(12, 10, 46, 76), 1, 2);
+    add(makeVertShuttle(100, 98, 10, 76), 2, 0);
   }
 
   function carSize(c) {
@@ -455,12 +451,18 @@
       else c.dir = dy > 0 ? 0 : 3;
       nx = c.x + (dx / dist) * c.spd * dt;
       ny = c.y + (dy / dist) * c.spd * dt;
-      if (!carHits(c, nx, ny, i) || c.stuck > 0.4) {
+      if (!carHits(c, nx, ny, i)) {
         c.x = nx;
         c.y = ny;
         c.stuck = 0;
       } else {
         c.stuck += dt;
+        if (c.stuck > 0.18) {
+          c.pi = (c.pi + 4) % c.path.length;
+          c.x = c.path[c.pi].x;
+          c.y = c.path[c.pi].y;
+          c.stuck = 0;
+        }
       }
     }
   }
@@ -492,14 +494,14 @@
       npc('mira').lines = [
         'Mira. Arctic fox. Civic works. The clouds are not weather.',
         'The forcefield blueprint was six pieces. I lost every one.',
-        'Find them. City, mall, highway east to the village, farm down south. Then North Base.'
+        'Find them. City, mall, highway east to the village, farm further south. Then South Base.'
       ];
     } else if (quest === 'hunt') {
       npc('mira').lines = n >= 6
-        ? ['That is all six. Rex at North Base. Do not stop for snacks.']
+        ? ['That is all six. Rex at South Base. Do not stop for snacks.']
         : ['That is ' + n + ' of 6. Mall, village past the highway, farm south. Check the map.'];
     } else if (quest === 'have') {
-      npc('mira').lines = ['You still have the set? North. The base. Poles if you want speed.'];
+      npc('mira').lines = ['You still have the set? South. The base. Poles if you want speed.'];
     } else {
       npc('mira').lines = ['I felt it lock in. A whole sky of glass. We get to keep the world.'];
     }
@@ -513,7 +515,7 @@
         'Copy that. Forcefield coming up. Stay on the pad and watch the sky.'
       ];
     } else if (quest === 'idle' || quest === 'hunt') {
-      npc('rex').lines = ['North Base. Wolf on duty. We need all six blueprint pieces. You have ' + n + '.'];
+      npc('rex').lines = ['South Base. Wolf on duty. We need all six blueprint pieces. You have ' + n + '.'];
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
@@ -532,7 +534,7 @@
   function questLabel() {
     if (quest === 'idle') return 'Find Mira · Plaza';
     if (quest === 'hunt') return 'Pieces ' + pieceCount() + ' / 6';
-    if (quest === 'have') return 'All 6 · North Base';
+    if (quest === 'have') return 'All 6 · South Base';
     if (quest === 'build') return 'Forcefield coming up';
     return 'World saved';
   }
@@ -711,8 +713,8 @@
 
   function drawForcefield() {
     if (lattice <= 0) return;
-    var ex = 24 * TILE - cam.x + 8;
-    var ey = 4 * TILE - cam.y + 8;
+    var ex = 5 * TILE - cam.x + 8;
+    var ey = 40 * TILE - cam.y + 8;
     var r = 20 + lattice * 180;
     ctx.strokeStyle = 'rgba(126,200,255,' + (0.35 + lattice * 0.4) + ')';
     ctx.lineWidth = 2;
