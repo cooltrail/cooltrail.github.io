@@ -39,7 +39,12 @@
     again: document.getElementById('again'),
     pad: document.getElementById('pad'),
     energy: document.getElementById('energy-fill'),
-    energyWrap: document.getElementById('energy-wrap')
+    energyWrap: document.getElementById('energy-wrap'),
+    clock: document.getElementById('clock'),
+    clockWrap: document.getElementById('clock-wrap'),
+    endK: document.getElementById('end-k'),
+    endH: document.getElementById('end-h'),
+    endP: document.getElementById('end-p')
   };
 
   var C = {
@@ -101,6 +106,11 @@
   var ride = { pole: null, wait: 0, vehicle: null };
   var lattice = 0;
   var flash = 0;
+  var NUKE_SECS = 360;
+  var nukeLeft = NUKE_SECS;
+  var nuked = false;
+  var nukeT = 0;
+  var shake = 0;
 
   function show(el, on) {
     el.classList.toggle('hidden', !on);
@@ -572,7 +582,7 @@
       npc('mira').lines = [
         'Mira. Arctic fox. Civic works. The clouds are not weather.',
         'The forcefield blueprint was six pieces. I lost every one.',
-        'Find them. City, mall, highway east to the village, farm further south. Then South Base.'
+        'Six minutes on the clock. Then the map nukes. City, mall, village, farm. Then South Base.'
       ];
     } else if (quest === 'hunt') {
       npc('mira').lines = n >= 6
@@ -593,7 +603,7 @@
         'Copy that. Forcefield coming up. Stay on the pad and watch the sky.'
       ];
     } else if (quest === 'idle' || quest === 'hunt') {
-      npc('rex').lines = ['South Base. You have ' + n + ' of 6. Still out:'].concat(missingHints());
+      npc('rex').lines = ['South Base. Clock is live. You have ' + n + ' of 6. Still out:'].concat(missingHints());
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
@@ -633,6 +643,7 @@
       if (quest === 'build') quest = pieceCount() >= 6 ? 'have' : 'hunt';
       if (quest === 'have' && pieceCount() < 6) quest = 'hunt';
       if (typeof d.energy === 'number') energy = clamp(d.energy, 0, 100);
+      if (typeof d.nukeLeft === 'number') nukeLeft = clamp(d.nukeLeft, 0, NUKE_SECS);
     } catch (e) {}
   }
 
@@ -641,8 +652,16 @@
       quest: quest,
       muted: muted,
       pieces: pieces.map(function (p) { return p.got; }),
-      energy: energy
+      energy: energy,
+      nukeLeft: nukeLeft
     }));
+  }
+
+  function clockText() {
+    var s = Math.max(0, Math.ceil(nukeLeft));
+    var m = Math.floor(s / 60);
+    var r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
   }
 
   function drawHud() {
@@ -653,6 +672,41 @@
       ui.energyWrap.classList.toggle('low', energy <= 22);
       ui.energyWrap.classList.toggle('empty', energy <= 0);
     }
+    if (ui.clock) {
+      ui.clock.textContent = quest === 'saved' ? 'SAFE' : clockText();
+      ui.clockWrap.classList.toggle('low', nukeLeft <= 60 && quest !== 'saved');
+      ui.clockWrap.classList.toggle('empty', nukeLeft <= 15 && quest !== 'saved');
+    }
+  }
+
+  function tickNuke(dt) {
+    if (nuked || quest === 'saved') return;
+    nukeLeft = Math.max(0, nukeLeft - dt);
+    drawHud();
+    if (nukeLeft <= 0) startNuke();
+  }
+
+  function startNuke() {
+    if (quest === 'saved' || lattice >= 1) {
+      quest = 'saved';
+      lattice = 1;
+      save();
+      drawHud();
+      return;
+    }
+    nuked = true;
+    nukeT = 0;
+    flash = 1;
+    shake = 1;
+    ride.vehicle = null;
+    ride.path = null;
+    show(ui.dialog, false);
+    show(ui.card, false);
+    show(ui.prompt, false);
+    scene = 'nuke';
+    save();
+    beep(70, 0.9, 0.09, 'sawtooth');
+    beep(36, 1.3, 0.06, 'triangle');
   }
 
   function ensureAudio() {
@@ -759,9 +813,23 @@
     var gy = sy - cam.y;
     var i, tx, ty;
     if (gx > VW || gy > VH || gx + TILE < 0 || gy + TILE < 0) return;
-    if (id === 1) pix(gx, gy, TILE, TILE, C.road);
+    if (nuked && (id === 7 || id === 4 || id === 11 || id === 10 || id === 12)) {
+      pix(gx, gy, TILE, TILE, ((sx + sy) / TILE) % 2 === 0 ? '#4a3228' : '#3a281e');
+      return;
+    }
+    if (nuked && id === 8) {
+      pix(gx, gy, TILE, TILE, '#3a281e');
+      pix(gx + 6, gy + 10, 3, 5, '#2a1c14');
+      pix(gx + 4, gy + 8, 7, 3, '#4a3a30');
+      return;
+    }
+    if (nuked && id === 3) {
+      pix(gx, gy, TILE, TILE, '#3e3834');
+      return;
+    }
+    if (id === 1) pix(gx, gy, TILE, TILE, nuked ? '#1a1816' : C.road);
     else if (id === 9) {
-      pix(gx, gy, TILE, TILE, C.hwy);
+      pix(gx, gy, TILE, TILE, nuked ? '#161410' : C.hwy);
       tx = Math.floor(sx / TILE);
       ty = Math.floor(sy / TILE);
       if ((ty === 9 || ty === 17 || ty === 25 || ty === 51) && tx % 2 === 0) {
@@ -790,7 +858,8 @@
   }
 
   function drawBuilding(b) {
-    pix(b.x * TILE - cam.x, b.y * TILE - cam.y, b.w * TILE, b.h * TILE, b.col || '#888888');
+    var h = nuked ? Math.max(TILE, Math.floor(b.h * TILE * 0.4)) : b.h * TILE;
+    pix(b.x * TILE - cam.x, b.y * TILE - cam.y + (b.h * TILE - h), b.w * TILE, h, nuked ? '#3e3630' : (b.col || '#888888'));
   }
 
   function drawShop(s) {
@@ -1043,13 +1112,19 @@
 
   function drawWorld() {
     var x, y;
+    var savedX = cam.x;
+    var savedY = cam.y;
+    if (shake > 0) {
+      cam.x += (Math.random() - 0.5) * 10 * shake;
+      cam.y += (Math.random() - 0.5) * 10 * shake;
+    }
     var maxC = map[0].length;
     var maxR = map.length;
     var x0 = Math.max(0, Math.floor(cam.x / TILE) - 1);
     var y0 = Math.max(0, Math.floor(cam.y / TILE) - 1);
     var x1 = Math.min(maxC, Math.ceil((cam.x + VW) / TILE) + 1);
     var y1 = Math.min(maxR, Math.ceil((cam.y + VH) / TILE) + 1);
-    pix(0, 0, VW, VH, place === 'mall' ? '#2a2a2e' : C.night);
+    pix(0, 0, VW, VH, nuked ? '#3a1810' : (place === 'mall' ? '#2a2a2e' : C.night));
     for (y = y0; y < y1; y++) {
       for (x = x0; x < x1; x++) drawTile(map[y][x], x * TILE, y * TILE);
     }
@@ -1063,38 +1138,46 @@
         pix(d.ox * TILE - cam.x, d.oy * TILE - cam.y, d.ow * TILE, d.oh * TILE, '#555555');
       });
       poles.forEach(drawPole);
-      cars.forEach(drawCar);
+      if (!nuked) cars.forEach(drawCar);
     } else {
       pix(20 * TILE - cam.x, 0 - cam.y, 8 * TILE, 4, '#555555');
       pix(20 * TILE - cam.x, (MROWS - 1) * TILE - cam.y, 8 * TILE, TILE, '#555555');
       pix(0 - cam.x, 13 * TILE - cam.y, 4, 6 * TILE, '#555555');
       pix((MCOLS - 1) * TILE - cam.x, 13 * TILE - cam.y, TILE, 6 * TILE, '#555555');
     }
-    shops.forEach(function (s) {
-      if (s.place === place) drawShop(s);
-    });
-    walkers.forEach(function (w) {
-      if (w.place === place) drawAnimal(w.x, w.y, w.species, w.dir, null, w.wait <= 0);
-    });
-    npcs.forEach(function (e) {
-      if (e.place !== place) return;
-      var a = npcCritter(e.kind);
-      drawAnimal(e.x, e.y, a.species, 0, a.accent, false);
-      drawQuestMark(e.x, e.y);
-    });
-    pieces.forEach(function (p) {
-      if (p.got || p.place !== place) return;
-      if (Math.floor(time * 6) % 2 === 0) {
-        pix(p.x - cam.x, p.y - cam.y, 3, 3, C.paper);
-      }
-    });
+    if (!nuked) {
+      shops.forEach(function (s) {
+        if (s.place === place) drawShop(s);
+      });
+      walkers.forEach(function (w) {
+        if (w.place === place) drawAnimal(w.x, w.y, w.species, w.dir, null, w.wait <= 0);
+      });
+      npcs.forEach(function (e) {
+        if (e.place !== place) return;
+        var a = npcCritter(e.kind);
+        drawAnimal(e.x, e.y, a.species, 0, a.accent, false);
+        drawQuestMark(e.x, e.y);
+      });
+      pieces.forEach(function (p) {
+        if (p.got || p.place !== place) return;
+        if (Math.floor(time * 6) % 2 === 0) {
+          pix(p.x - cam.x, p.y - cam.y, 3, 3, C.paper);
+        }
+      });
+    }
     if (scene !== 'ride') {
       drawAnimal(player.x, player.y, 'fox', player.dir, quest === 'have' || quest === 'build' ? C.paper : C.accent, player.walk);
     }
     drawVehicle();
     if (place === 'city') drawForcefield();
-    if (flash > 0) pix(0, 0, VW, VH, 'rgba(180,220,255,' + flash + ')');
+    if (flash > 0) {
+      pix(0, 0, VW, VH, nuked
+        ? 'rgba(255,150,50,' + Math.min(1, flash) + ')'
+        : 'rgba(180,220,255,' + flash + ')');
+    }
     drawMinimap();
+    cam.x = savedX;
+    cam.y = savedY;
   }
 
   function updateWorld(dt) {
@@ -1142,7 +1225,7 @@
         quest = 'saved';
         save();
         drawHud();
-        setTimeout(openEnd, 700);
+        setTimeout(function () { openEnd(true); }, 700);
       }
     }
 
@@ -1421,12 +1504,19 @@
     cam.y += (cam.ty - cam.y) * Math.min(1, dt * 6);
   }
 
-  function openEnd() {
+  function openEnd(won) {
     scene = 'end';
     show(ui.dialog, false);
     show(ui.card, false);
+    if (ui.endK) {
+      ui.endK.textContent = won ? 'The sky holds' : 'Time is up';
+      ui.endH.textContent = won ? 'World saved' : 'Map nuked';
+      ui.endP.textContent = won
+        ? 'The forcefield locked in. The invasion bounced. The buses still run at dawn.'
+        : 'Six minutes. The forcefield never locked. The city is ash.';
+    }
     show(ui.end, true);
-    beep(392, 0.2, 0.05, 'sine');
+    beep(won ? 392 : 110, 0.22, 0.05, won ? 'sine' : 'sawtooth');
   }
 
   function onAct() {
@@ -1448,10 +1538,15 @@
     bootEntities();
     usePlace('city');
     ride.vehicle = null;
+    nuked = false;
+    nukeT = 0;
+    shake = 0;
+    flash = 0;
     if (quest === 'saved') {
       lattice = 1;
-    } else if (quest === 'have') {
-      lattice = 0;
+    } else {
+      if (quest === 'have') lattice = 0;
+      if (nukeLeft <= 0) nukeLeft = NUKE_SECS;
     }
     drawHud();
     scene = 'world';
@@ -1514,6 +1609,11 @@
     quest = 'idle';
     lattice = 0;
     energy = 100;
+    nukeLeft = NUKE_SECS;
+    nuked = false;
+    nukeT = 0;
+    shake = 0;
+    flash = 0;
     resetPieces();
     save();
     begin();
@@ -1534,6 +1634,9 @@
     var dt = Math.min(0.05, (now - last) / 1000 || 0.016);
     last = now;
     time += dt;
+    if (scene === 'world' || scene === 'ride' || scene === 'dialog' || scene === 'pick') {
+      tickNuke(dt);
+    }
     if (scene === 'world') {
       updateWorld(dt);
       drawWorld();
@@ -1546,6 +1649,12 @@
       updateCars(dt);
       updateWalkers(dt);
       drawWorld();
+    } else if (scene === 'nuke') {
+      nukeT += dt;
+      flash = Math.max(0, 1 - nukeT * 0.42);
+      shake = Math.max(0, 1 - nukeT * 0.55);
+      drawWorld();
+      if (nukeT > 2.4) openEnd(false);
     } else if (scene === 'end') {
       updateCars(dt);
       updateWalkers(dt);

@@ -21,6 +21,10 @@
         <span>EN</span>
         <div id="energy"><i id="energy-fill"></i></div>
       </div>
+      <div id="clock-wrap" aria-label="Time left">
+        <span>T</span>
+        <b id="clock">6:00</b>
+      </div>
       <button id="mute" type="button" aria-label="Mute">Sound</button>
     </div>
 
@@ -29,7 +33,7 @@
     <div id="title" class="panel">
       <p class="kicker">City, highway, country</p>
       <h1>Callpole</h1>
-      <p class="lead">You are a fox. Call a bus or a taxi. Hunt six blueprint pieces across the city, the mall, the highway, and the countryside. The minimap shows the whole map.</p>
+      <p class="lead">You are a fox. Six minutes. Hunt six blueprint pieces, get them to South Base, and raise the forcefield. When the clock hits zero the map nukes.</p>
       <p class="hint">Arrows or WASD to walk · Space to talk or call · Shops refill energy</p>
       <button id="start" type="button">Hit the street</button>
       <p class="home-link"><a href="https://cooltrail.github.io/">cooltrail.github.io</a></p>
@@ -53,9 +57,9 @@
     </div>
 
     <div id="end" class="panel hidden">
-      <p class="kicker">The sky holds</p>
-      <h1>World saved</h1>
-      <p class="lead">The forcefield locked in. The invasion bounced. The buses still run at dawn.</p>
+      <p id="end-k" class="kicker">The sky holds</p>
+      <h1 id="end-h">World saved</h1>
+      <p id="end-p" class="lead">The forcefield locked in. The invasion bounced. The buses still run at dawn.</p>
       <button id="again" type="button">Walk it again</button>
     </div>
 

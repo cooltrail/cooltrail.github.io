@@ -101,6 +101,27 @@ html, body {
 #energy-wrap.low #energy-fill { background: #d94a32; }
 #energy-wrap.empty { color: #d94a32; }
 
+#clock-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fff4d6;
+  border: 3px solid #3a2418;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: #3a2418;
+}
+
+#clock-wrap b {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+#clock-wrap.low { color: #d94a32; }
+#clock-wrap.empty { color: #d94a32; background: #ffe0c8; }
+
 #mute {
   pointer-events: auto;
   font-family: inherit;
