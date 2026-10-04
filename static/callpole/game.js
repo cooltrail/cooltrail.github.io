@@ -556,7 +556,7 @@
     npc('kit').lines = ['Kit the cat. Mall, plus the country. Highway east. Farm is a long walk or a pole.'];
     npc('jan').lines = [
       'Jan the rabbit. Energy first. Walking spends it. The yellow bar is up top.',
-      'Empty bar means you stop. Shops fill you back up. Plaza, this mall, village, farm stand.',
+      'Empty bar means you crawl at one third speed. Get to a shop. Plaza, this mall, village, farm stand.',
       n >= 6 || pieces[4] && pieces[4].got
         ? 'Food court is just gray too. You already took the scrap.'
         : 'Paper on the floor by the east shops. I thought it was a receipt.'
@@ -1054,7 +1054,7 @@
   }
 
   function updateWorld(dt) {
-    var spd = 48;
+    var spd = energy <= 0 ? 16 : 48;
     player.vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
     player.vy = (hold.up ? -spd : 0) + (hold.down ? spd : 0);
     if (player.vx && player.vy) {
@@ -1066,10 +1066,6 @@
       if (player.vx < 0) player.dir = 1;
     } else if (player.vy) {
       player.dir = player.vy > 0 ? 0 : 3;
-    }
-    if (energy <= 0) {
-      player.vx = 0;
-      player.vy = 0;
     }
     player.walk = !!(player.vx || player.vy);
     var ox = player.x;
