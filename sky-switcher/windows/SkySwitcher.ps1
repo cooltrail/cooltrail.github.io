@@ -218,13 +218,13 @@ function Copy-TexFile([string]$Source, [string]$Dest) {
     Copy-Item -LiteralPath $Source -Destination $Dest -Force
 }
 
+function Get-DefaultFaceFile([string]$Face) {
+    $saved = Join-Path $script:Original "sky512_$Face.tex"
+    if (Test-Path -LiteralPath $saved) { return $saved }
+    return $null
+}
+
 function Install-Textures([string]$SourceDir, $DestDirs) {
-    foreach ($face in $script:Faces) {
-        $file = Join-Path $SourceDir "sky512_$face.tex"
-        if (-not (Test-Path -LiteralPath $file)) {
-            throw "Some sides are still empty. Drop a picture on the empty panels, then click Save my sky."
-        }
-    }
     if (@($DestDirs).Count -eq 0) {
         throw "Roblox is not installed. Install Roblox, open it once, quit it, then try again."
     }
@@ -232,6 +232,8 @@ function Install-Textures([string]$SourceDir, $DestDirs) {
     foreach ($dest in @($DestDirs)) {
         foreach ($face in $script:Faces) {
             $src = Join-Path $SourceDir "sky512_$face.tex"
+            if (-not (Test-Path -LiteralPath $src)) { $src = Get-DefaultFaceFile $face }
+            if (-not $src) { throw "No default sky is saved for a blank side. Drop a picture on that panel." }
             Copy-TexFile $src (Join-Path $dest "sky512_$face.tex")
             Copy-TexFile $src (Join-Path $dest "indoor512_$face.tex")
         }
@@ -597,11 +599,11 @@ function Import-Paths($Paths) {
     }
     if ($names.Count -eq 0) {
         New-BlankSky
-        $script:status.Text = "No sky files in that drop, and that's fine. Drop pictures on the empty panels."
+        $script:status.Text = "No sky files in that drop. Blank panels use the default sky. Drop a picture on a panel to change that side."
         return
     }
     Update-List $names[-1]
-    $script:status.Text = "Added $($names -join ', '). Empty sides can stay empty. Drop a picture on a panel to fill one."
+    $script:status.Text = "Added $($names -join ', '). A blank side uses the default sky."
 }
 
 function Open-Face([string]$Code) {
@@ -667,7 +669,7 @@ function Save-PanelImages([string]$Dest) {
 function Save-CustomSky {
     $filled = @($script:Faces | Where-Object { $script:slots[$_].Box.Image })
     if ($filled.Count -eq 0) {
-        $script:status.Text = "The panels are empty, and that's fine. Drop a picture on one when you want it."
+        $script:status.Text = "Every panel is blank, so this sky is the default. Drop a picture on a panel to change that side."
         return
     }
     $name = Ask-Name
@@ -681,7 +683,7 @@ function Save-CustomSky {
     if ($empty.Count -eq 0) {
         $script:status.Text = "Saved $safe. Click Use this sky to put it in Roblox."
     } else {
-        $script:status.Text = "Saved $safe. $($empty -join ', ') can stay empty. Drop a picture on a panel when you want one."
+        $script:status.Text = "Saved $safe. $($empty -join ', ') stays the default sky."
     }
 }
 
@@ -689,30 +691,26 @@ function Use-SelectedSky {
     $index = $script:list.SelectedIndex
     $selected = $null
     if ($index -ge 0 -and $index -lt $script:skies.Count) { $selected = $script:skies[$index] }
+    $empty = @(Get-EmptyPanelTitles)
     $folder = $null
     $skyName = $null
-    if ($selected -and (Test-SkyFolder $selected.Path)) {
+    if ($selected -and (Test-SkyFolder $selected.Path) -and $empty.Count -eq 0) {
         $folder = $selected.Path
         $skyName = $selected.Name
     } else {
-        $empty = @(Get-EmptyPanelTitles)
-        if ($empty.Count -gt 0) {
-            $script:status.Text = "$($empty -join ', ') can stay empty. Drop a picture on those panels, then click Use this sky."
-            return
-        }
         if ($selected) {
-            $folder = $selected.Path
             $skyName = $selected.Name
-            Save-PanelImages $folder
+        } elseif ($empty.Count -eq 6) {
+            $skyName = "Default"
         } else {
             $name = Ask-Name
             if (-not $name) { return }
             $skyName = [regex]::Replace($name, '[<>:"/\\|?*]', "-").Trim()
             if (-not $skyName) { return }
-            New-Item -ItemType Directory -Force -Path $script:Library | Out-Null
-            $folder = Join-Path $script:Library $skyName
-            Save-PanelImages $folder
         }
+        New-Item -ItemType Directory -Force -Path $script:Library | Out-Null
+        $folder = Join-Path $script:Library $skyName
+        Save-PanelImages $folder
     }
     if (Test-RobloxRunning) {
         $answer = [System.Windows.Forms.MessageBox]::Show(
@@ -726,7 +724,11 @@ function Use-SelectedSky {
     }
     $message = Install-Sky $folder
     Update-List $skyName
-    $script:status.Text = $message
+    if ($empty.Count -eq 0) {
+        $script:status.Text = $message
+    } else {
+        $script:status.Text = "$message $($empty -join ', ') uses the default sky."
+    }
 }
 
 function Restore-FromButton {
@@ -750,7 +752,7 @@ function Remove-Selected {
         $script:slots[$script:chosen].Panel.BackColor = [System.Drawing.Color]::White
         $script:chosen = $null
         Set-PreviewImage $null
-        $script:status.Text = "Removed the $title picture. Click Save my sky to keep the change."
+        $script:status.Text = "$title is the default sky again. Click Use this sky to apply it."
         return
     }
     $index = $script:list.SelectedIndex
@@ -782,7 +784,7 @@ function New-BlankSky {
     $script:loading = $true
     $script:list.ClearSelected()
     $script:loading = $false
-    $script:status.Text = "Drop a picture on Up, Down, Left, Right, Front, and Back, then click Save my sky."
+    $script:status.Text = "Blank panels use the default sky. Drop a picture on a side you want to change, then click Use this sky."
 }
 
 function Add-FaceDrop([System.Windows.Forms.Control]$Control) {
@@ -828,7 +830,7 @@ function New-FacePanel([string]$Code, [string]$Title, [int]$X, [int]$Y) {
     $panel.Controls.Add($box)
 
     $empty = New-Object System.Windows.Forms.Label
-    $empty.Text = "Click to choose"
+    $empty.Text = "Default"
     $empty.TextAlign = "MiddleCenter"
     $empty.ForeColor = [System.Drawing.Color]::Gray
     $empty.Location = New-Object System.Drawing.Point(6, 56)
@@ -899,7 +901,7 @@ function Start-Window {
     [System.Windows.Forms.Application]::EnableVisualStyles()
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Sky Switcher"
+    $form.Text = "Sky Switcher 2"
     $form.ClientSize = New-Object System.Drawing.Size(980, 700)
     $form.FormBorderStyle = "FixedDialog"
     $form.MaximizeBox = $false
@@ -919,7 +921,7 @@ function Start-Window {
         if ($empty.Count -eq 0) {
             $script:status.Text = "Showing the pictures in $($script:skies[$index].Name). Click one, then Delete to remove that picture."
         } else {
-            $script:status.Text = "$($empty -join ', ') can stay empty. Drop a picture on a panel to fill one."
+            $script:status.Text = "$($empty -join ', ') is the default sky. Drop a picture on a panel to change that side."
         }
     })
     $script:list.Add_DoubleClick({

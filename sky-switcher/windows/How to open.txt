@@ -5,7 +5,7 @@ Sky Switcher for Windows
 3. Double-click Sky Switcher.bat.
 4. If Windows says it protected your PC, click More info, then Run anyway.
 5. Quit Roblox if it is open.
-6. Pick a sky and click Use this sky. Or click New sky and drop pictures on the empty panels.
-7. Empty sides can stay empty. When every panel has a picture, click Use this sky.
+6. Pick a sky and click Use this sky. Or click New sky and drop pictures on the panels.
+7. A blank panel is the default sky. You do not need a picture on every side.
 
 If you use Bloxstrap or Fishstrap, open the game from there after you switch skies.

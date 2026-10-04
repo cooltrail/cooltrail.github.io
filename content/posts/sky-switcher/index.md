@@ -3,14 +3,25 @@ title = 'Sky Switcher'
 date = '2026-10-03T12:20:00-07:00'
 draft = false
 author = '@blue749rabbit'
-description = 'Step by step: install Sky Switcher on Mac or Windows and change your Roblox sky.'
+description = 'Sky Switcher v2. A blank side keeps the default Roblox sky. Install on Mac or Windows.'
 tags = ['roblox']
 categories = ['roblox']
 +++
 
-Sky Switcher changes the Roblox sky. Pick a sky you already have, or drop your own pictures on Up, Down, Left, Right, Front, and Back. A side with no picture can stay empty until you want one.
+Sky Switcher changes the Roblox sky. Pick a sky you already have, or drop your own pictures on Up, Down, Left, Right, Front, and Back.
 
 Quit Roblox before you switch skies.
+
+### v2
+
+A blank slot is the default sky.
+
+1. Click **New sky**. Each panel says **Default**.
+2. Drop a picture only on the sides you want to change.
+3. Leave the other panels blank. Those sides stay the normal Roblox sky.
+4. Click **Use this sky**.
+
+Delete a picture and that side goes back to the default sky. Click **Use this sky** again to apply it.
 
 ### Mac
 
@@ -39,11 +50,11 @@ Quit Roblox before you switch skies.
 
 ### Make your own sky
 
-1. Click **New sky**. The six panels start empty. That is fine.
+1. Click **New sky**. Blank panels use the default sky.
 2. Click a panel, or drop a picture on it. The sides are Up, Down, Left, Right, Front, and Back.
 3. Click **Rotate** under a picture if it is turned the wrong way.
-4. Click **Save my sky** and give it a name. Empty sides can stay empty.
-5. When every panel has a picture, click **Use this sky**.
+4. Click **Save my sky** and give it a name. Blank sides stay the default sky.
+5. Click **Use this sky**. You do not need a picture on every side.
 
 **Restore original sky** puts back the sky from the first time you switched.
 
