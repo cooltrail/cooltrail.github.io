@@ -103,7 +103,7 @@
   var quest = 'idle';
   var muted = false;
   var audio = { ctx: null };
-  var ride = { pole: null, wait: 0, vehicle: null };
+  var ride = { pole: null, wait: 0, vehicle: null, phase: null };
   var lattice = 0;
   var flash = 0;
   var NUKE_SECS = 360;
@@ -700,6 +700,7 @@
     shake = 1;
     ride.vehicle = null;
     ride.path = null;
+    ride.phase = null;
     show(ui.dialog, false);
     show(ui.card, false);
     show(ui.prompt, false);
@@ -1060,7 +1061,7 @@
   }
 
   function drawVehicle() {
-    if (scene === 'ride' && ride.vehicle) drawCar(ride.vehicle);
+    if (ride.vehicle) drawCar(ride.vehicle);
   }
 
   function miniColor(id) {
@@ -1165,7 +1166,7 @@
         }
       });
     }
-    if (scene !== 'ride') {
+    if (scene !== 'ride' || ride.phase !== 'go') {
       drawAnimal(player.x, player.y, 'fox', player.dir, quest === 'have' || quest === 'build' ? C.paper : C.accent, player.walk);
     }
     drawVehicle();
@@ -1446,41 +1447,108 @@
     interactLock = true;
   }
 
+  function outsideView(x, y) {
+    return x < cam.x - 32 || y < cam.y - 32 || x > cam.x + VW + 32 || y > cam.y + VH + 32;
+  }
+
+  function findEdgeRoad(px, py) {
+    var sx = Math.floor(px / TILE);
+    var sy = Math.floor(py / TILE);
+    if (!isRoad(sx, sy)) {
+      var n = nearestRoad(px, py);
+      sx = Math.floor(n.x / TILE);
+      sy = Math.floor(n.y / TILE);
+    }
+    var q = [[sx, sy]];
+    var seen = {};
+    seen[sx + ',' + sy] = 1;
+    var head = 0;
+    var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    var best = null;
+    var bestD = 1e9;
+    var c, i, nx, ny, k, wx, wy, d;
+    while (head < q.length && head < 500) {
+      c = q[head++];
+      wx = c[0] * TILE + 8;
+      wy = c[1] * TILE + 8;
+      if (outsideView(wx, wy)) {
+        d = Math.abs(wx - px) + Math.abs(wy - py);
+        if (d < bestD) {
+          bestD = d;
+          best = { x: wx, y: wy };
+        }
+        continue;
+      }
+      for (i = 0; i < 4; i++) {
+        nx = c[0] + dirs[i][0];
+        ny = c[1] + dirs[i][1];
+        k = nx + ',' + ny;
+        if (seen[k] || !isRoad(nx, ny)) continue;
+        seen[k] = 1;
+        q.push([nx, ny]);
+      }
+    }
+    if (best) return best;
+    if (px <= cam.x + VW / 2) return { x: cam.x - 36, y: py };
+    return { x: cam.x + VW + 36, y: py };
+  }
+
+  function findLeaveRoad(px, py, dir) {
+    var fdx = dir === 2 ? 1 : dir === 1 ? -1 : 0;
+    var fdy = dir === 0 ? 1 : dir === 3 ? -1 : 0;
+    var tx = Math.floor(px / TILE);
+    var ty = Math.floor(py / TILE);
+    var i, last = { x: px, y: py };
+    for (i = 0; i < 48; i++) {
+      if (!isRoad(tx + fdx, ty + fdy)) break;
+      tx += fdx;
+      ty += fdy;
+      last = { x: tx * TILE + 8, y: ty * TILE + 8 };
+      if (outsideView(last.x, last.y)) return last;
+    }
+    return findEdgeRoad(px, py);
+  }
+
   function takeRide(dest) {
     closePick();
     var start = nearestRoad(ride.pole.x, ride.pole.y);
     var end = nearestRoad(dest.x, dest.y);
+    var hail = findEdgeRoad(start.x, start.y);
     ride.dest = dest;
-    ride.path = findPath(start.x, start.y, end.x, end.y);
+    ride.pickup = start;
+    ride.drop = end;
+    ride.phase = 'hail';
+    ride.path = findPath(hail.x, hail.y, start.x, start.y);
     ride.pi = 0;
-    ride.vehicle = { kind: ride.pole.kind, x: start.x, y: start.y, dir: 2 };
-    player.x = start.x;
-    player.y = start.y;
+    ride.vehicle = { kind: ride.pole.kind, x: hail.x, y: hail.y, dir: 2 };
     scene = 'ride';
+    ui.prompt.textContent = (ride.pole.kind === 'bus' ? 'Bus' : 'Taxi') + ' incoming';
+    show(ui.prompt, true);
     beep(180, 0.12, 0.04, 'triangle');
   }
 
   function finishRide() {
-    var dest = ride.dest;
-    player.x = dest.x + 3;
-    player.y = dest.y;
+    if (ride.dest && ride.phase !== 'leave') {
+      player.x = ride.dest.x + 3;
+      player.y = ride.dest.y;
+    }
     ride.vehicle = null;
     ride.path = null;
+    ride.phase = null;
+    show(ui.prompt, false);
     scene = 'world';
     interactLock = true;
-    beep(640, 0.08, 0.04, 'sine');
   }
 
-  function updateRide(dt) {
+  function followCam(dt, x, y) {
+    cam.tx = clamp(x - VW / 2, 0, Math.max(0, cityMap[0].length * TILE - VW));
+    cam.ty = clamp(y - VH / 2, 0, Math.max(0, cityMap.length * TILE - VH));
+    cam.x += (cam.tx - cam.x) * Math.min(1, dt * 6);
+    cam.y += (cam.ty - cam.y) * Math.min(1, dt * 6);
+  }
+
+  function steerRide(dt, board) {
     var v = ride.vehicle;
-    if (!v || !ride.path || !ride.path.length) {
-      finishRide();
-      return;
-    }
-    if (ride.pi >= ride.path.length) {
-      finishRide();
-      return;
-    }
     var p = ride.path[ride.pi];
     var dx = p.x - v.x;
     var dy = p.y - v.y;
@@ -1492,16 +1560,51 @@
       v.x = p.x;
       v.y = p.y;
       ride.pi += 1;
-      return;
+      return ride.pi >= ride.path.length;
     }
     v.x += (dx / dist) * spd * dt;
     v.y += (dy / dist) * spd * dt;
-    player.x = v.x;
-    player.y = v.y;
-    cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, cityMap[0].length * TILE - VW));
-    cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, cityMap.length * TILE - VH));
-    cam.x += (cam.tx - cam.x) * Math.min(1, dt * 6);
-    cam.y += (cam.ty - cam.y) * Math.min(1, dt * 6);
+    if (board) {
+      player.x = v.x;
+      player.y = v.y;
+      followCam(dt, v.x, v.y);
+    } else {
+      followCam(dt, player.x, player.y);
+    }
+    return false;
+  }
+
+  function updateRide(dt) {
+    var v = ride.vehicle;
+    var leave;
+    if (!v || !ride.path || !ride.path.length) {
+      finishRide();
+      return;
+    }
+    if (steerRide(dt, ride.phase === 'go')) {
+      if (ride.phase === 'hail') {
+        v.x = ride.pickup.x;
+        v.y = ride.pickup.y;
+        ride.phase = 'go';
+        ride.path = findPath(ride.pickup.x, ride.pickup.y, ride.drop.x, ride.drop.y);
+        ride.pi = 0;
+        show(ui.prompt, false);
+        beep(220, 0.1, 0.04, 'triangle');
+        return;
+      }
+      if (ride.phase === 'go') {
+        player.x = ride.dest.x + 3;
+        player.y = ride.dest.y;
+        leave = findLeaveRoad(v.x, v.y, v.dir);
+        ride.phase = 'leave';
+        ride.path = findPath(v.x, v.y, leave.x, leave.y);
+        ride.pi = 0;
+        beep(640, 0.08, 0.04, 'sine');
+        return;
+      }
+      finishRide();
+    }
+    if (ride.phase === 'leave' && outsideView(v.x, v.y)) finishRide();
   }
 
   function openEnd(won) {
@@ -1538,6 +1641,8 @@
     bootEntities();
     usePlace('city');
     ride.vehicle = null;
+    ride.path = null;
+    ride.phase = null;
     nuked = false;
     nukeT = 0;
     shake = 0;
