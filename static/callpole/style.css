@@ -69,6 +69,38 @@ html, body {
   color: #3a2418;
 }
 
+#energy-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #fff4d6;
+  border: 3px solid #3a2418;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: #3a2418;
+}
+
+#energy {
+  width: 4.4rem;
+  height: 0.55rem;
+  background: #d4c4a8;
+  border: 2px solid #3a2418;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+#energy-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #f5c542;
+}
+
+#energy-wrap.low #energy-fill { background: #d94a32; }
+#energy-wrap.empty { color: #d94a32; }
+
 #mute {
   pointer-events: auto;
   font-family: inherit;

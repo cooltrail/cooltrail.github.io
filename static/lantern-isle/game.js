@@ -37,7 +37,9 @@
     dests: document.getElementById('ride-dests'),
     end: document.getElementById('end'),
     again: document.getElementById('again'),
-    pad: document.getElementById('pad')
+    pad: document.getElementById('pad'),
+    energy: document.getElementById('energy-fill'),
+    energyWrap: document.getElementById('energy-wrap')
   };
 
   var C = {
@@ -89,6 +91,8 @@
   var walkers = [];
   var cars = [];
   var mallDoors = [];
+  var shops = [];
+  var energy = 100;
   var near = null;
   var talk = { lines: [], i: 0, who: '', after: null };
   var quest = 'idle';
@@ -250,6 +254,12 @@
       { id: 's', ox: 32, oy: 43, ow: 4, oh: 2, ix: 20, iy: 30, iw: 8, ih: 2, sx: 22, sy: 29, outX: 33, outY: 43 },
       { id: 'w', ox: 13, oy: 34, ow: 1, oh: 2, ix: 0, iy: 13, iw: 2, ih: 6, sx: 2, sy: 16, outX: 12, outY: 34 },
       { id: 'e', ox: 55, oy: 34, ow: 1, oh: 2, ix: 46, iy: 13, iw: 2, ih: 6, sx: 44, sy: 16, outX: 55, outY: 34 }
+    ];
+    shops = [
+      { name: 'Plaza snack', place: 'city', x: 19 * TILE, y: 22 * TILE },
+      { name: 'Food court', place: 'mall', x: 26 * TILE, y: 12 * TILE },
+      { name: 'Village shop', place: 'city', x: 94 * TILE, y: 15 * TILE },
+      { name: 'Farm stand', place: 'city', x: 70 * TILE, y: 61 * TILE }
     ];
     bootWalkers();
     bootCars();
@@ -544,9 +554,13 @@
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
     npc('kit').lines = ['Kit the cat. Mall, plus the country. Highway east. Farm is a long walk or a pole.'];
-    npc('jan').lines = n >= 6 || pieces[4] && pieces[4].got
-      ? ['Jan the rabbit. Food court is just gray too. You already took the scrap.']
-      : ['Jan the rabbit. Paper on the floor by the east shops. I thought it was a receipt.'];
+    npc('jan').lines = [
+      'Jan the rabbit. Energy first. Walking spends it. The yellow bar is up top.',
+      'Empty bar means you stop. Shops fill you back up. Plaza, this mall, village, farm stand.',
+      n >= 6 || pieces[4] && pieces[4].got
+        ? 'Food court is just gray too. You already took the scrap.'
+        : 'Paper on the floor by the east shops. I thought it was a receipt.'
+    ];
     npc('oak').lines = pieces[1] && pieces[1].got
       ? ['Oak the bear. You found the village scrap. The highway goes home if you want it.']
       : ['Oak the bear. Village. A scrap sat by the inn. Highway west is the city.'];
@@ -574,6 +588,7 @@
       }
       if (quest === 'build') quest = pieceCount() >= 6 ? 'have' : 'hunt';
       if (quest === 'have' && pieceCount() < 6) quest = 'hunt';
+      if (typeof d.energy === 'number') energy = clamp(d.energy, 0, 100);
     } catch (e) {}
   }
 
@@ -581,13 +596,19 @@
     localStorage.setItem(SAVE, JSON.stringify({
       quest: quest,
       muted: muted,
-      pieces: pieces.map(function (p) { return p.got; })
+      pieces: pieces.map(function (p) { return p.got; }),
+      energy: energy
     }));
   }
 
   function drawHud() {
     ui.stamps.textContent = questLabel();
     ui.mute.textContent = muted ? 'Muted' : 'Sound';
+    if (ui.energy) {
+      ui.energy.style.width = Math.max(0, energy) + '%';
+      ui.energyWrap.classList.toggle('low', energy <= 22);
+      ui.energyWrap.classList.toggle('empty', energy <= 0);
+    }
   }
 
   function ensureAudio() {
@@ -726,6 +747,26 @@
 
   function drawBuilding(b) {
     pix(b.x * TILE - cam.x, b.y * TILE - cam.y, b.w * TILE, b.h * TILE, b.col || '#888888');
+  }
+
+  function drawShop(s) {
+    var gx = Math.round(s.x - cam.x);
+    var gy = Math.round(s.y - cam.y);
+    pix(gx - 1, gy + 4, 12, 8, '#6a4a32');
+    pix(gx - 2, gy + 1, 14, 4, C.verm);
+    pix(gx + 2, gy + 6, 3, 4, C.paper);
+    pix(gx + 6, gy + 6, 2, 3, C.accent);
+    pix(gx + 3, gy - 1, 6, 3, C.paper);
+    pix(gx + 4, gy - 1, 4, 2, C.verm);
+  }
+
+  function useShop() {
+    energy = 100;
+    save();
+    drawHud();
+    interactLock = true;
+    actEdge = false;
+    beep(720, 0.1, 0.05, 'sine');
   }
 
   function drawPole(p) {
@@ -985,6 +1026,9 @@
       pix(0 - cam.x, 13 * TILE - cam.y, 4, 6 * TILE, '#555555');
       pix((MCOLS - 1) * TILE - cam.x, 13 * TILE - cam.y, TILE, 6 * TILE, '#555555');
     }
+    shops.forEach(function (s) {
+      if (s.place === place) drawShop(s);
+    });
     walkers.forEach(function (w) {
       if (w.place === place) drawAnimal(w.x, w.y, w.species, w.dir, null, w.wait <= 0);
     });
@@ -1023,13 +1067,23 @@
     } else if (player.vy) {
       player.dir = player.vy > 0 ? 0 : 3;
     }
+    if (energy <= 0) {
+      player.vx = 0;
+      player.vy = 0;
+    }
     player.walk = !!(player.vx || player.vy);
+    var ox = player.x;
+    var oy = player.y;
     var nx = player.x + player.vx * dt;
     var ny = player.y + player.vy * dt;
     if (!blocked(nx, player.y, CHAR_W, CHAR_H)) player.x = nx;
     if (!blocked(player.x, ny, CHAR_W, CHAR_H)) player.y = ny;
     player.x = clamp(player.x, 0, map[0].length * TILE - CHAR_W);
     player.y = clamp(player.y, 0, map.length * TILE - CHAR_H);
+    if (Math.abs(player.x - ox) + Math.abs(player.y - oy) > 0.2) {
+      energy = Math.max(0, energy - 2.2 * dt);
+      drawHud();
+    }
     cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
     cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, map.length * TILE - VH));
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
@@ -1080,13 +1134,22 @@
         }
       }
     }
+    for (i = 0; i < shops.length; i++) {
+      e = shops[i];
+      if (e.place !== place) continue;
+      d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+      if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
+    }
     for (i = 0; i < pieces.length; i++) {
       e = pieces[i];
       if (e.got || e.place !== place) continue;
       d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
       if (d < 16) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
     }
-    if (near) {
+    if (!near && energy <= 0) {
+      ui.prompt.textContent = 'No energy · Find a shop';
+      show(ui.prompt, true);
+    } else if (near) {
       ui.prompt.textContent = near.text;
       show(ui.prompt, true);
     } else show(ui.prompt, false);
@@ -1097,6 +1160,7 @@
       else if (near.kind === 'mall') enterMall(near.e);
       else if (near.kind === 'exit') exitMall(near.e);
       else if (near.kind === 'piece') takePiece(near.e);
+      else if (near.kind === 'shop') useShop(near.e);
     }
   }
 
@@ -1409,6 +1473,7 @@
   ui.again.addEventListener('click', function () {
     quest = 'idle';
     lattice = 0;
+    energy = 100;
     resetPieces();
     save();
     begin();
