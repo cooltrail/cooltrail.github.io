@@ -546,6 +546,20 @@
     return pieces.filter(function (p) { return p.got; }).length;
   }
 
+  function missingHints() {
+    var hints = [
+      'Plaza. On the grass by Mira.',
+      'Village. Highway east. By the inn.',
+      'West alley. Between the gray blocks and the road.',
+      'North sidewalk. In front of the north buildings.',
+      'Mall hall. Inside. East of the food court.',
+      'Farm field. South of the barns.'
+    ];
+    return pieces.map(function (p, i) {
+      return p.got ? null : hints[i];
+    }).filter(Boolean);
+  }
+
   function npc(id) {
     var i;
     for (i = 0; i < npcs.length; i++) if (npcs[i].id === id) return npcs[i];
@@ -579,7 +593,7 @@
         'Copy that. Forcefield coming up. Stay on the pad and watch the sky.'
       ];
     } else if (quest === 'idle' || quest === 'hunt') {
-      npc('rex').lines = ['South Base. Compound under the city. We need all six blueprint pieces. You have ' + n + '.'];
+      npc('rex').lines = ['South Base. You have ' + n + ' of 6. Still out:'].concat(missingHints());
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
