@@ -97,6 +97,8 @@
   var cars = [];
   var mallDoors = [];
   var shops = [];
+  var rentals = [];
+  var drive = { on: false, parked: false, x: 0, y: 0, dir: 2, kind: 'rental' };
   var energy = 100;
   var near = null;
   var talk = { lines: [], i: 0, who: '', after: null };
@@ -200,11 +202,11 @@
     addBuilding(26, 1, 7, 6);
     addBuilding(38, 1, 9, 6);
     addBuilding(48, 1, 7, 6);
-    addBuilding(1, 12, 8, 3);
+    addBuilding(1, 12, 8, 3, '#4a8a7a');
     addBuilding(14, 12, 7, 3);
     addBuilding(26, 12, 7, 3);
     addBuilding(38, 12, 9, 3);
-    addBuilding(48, 12, 7, 3);
+    addBuilding(48, 12, 7, 3, '#4a8a7a');
     addBuilding(1, 20, 8, 3);
     addBuilding(26, 20, 7, 3);
     addBuilding(38, 20, 9, 3);
@@ -271,6 +273,12 @@
       { name: 'Village shop', place: 'city', x: 94 * TILE, y: 15 * TILE },
       { name: 'Farm stand', place: 'city', x: 70 * TILE, y: 61 * TILE }
     ];
+    rentals = [
+      { name: 'West lot', place: 'city', x: 4 * TILE, y: 15 * TILE },
+      { name: 'East lot', place: 'city', x: 51 * TILE, y: 15 * TILE },
+      { name: 'Village lot', place: 'city', x: 88 * TILE, y: 15 * TILE },
+      { name: 'Farm lot', place: 'city', x: 90 * TILE, y: 53 * TILE }
+    ];
     bootWalkers();
     bootCars();
     if (!pieces.length) resetPieces();
@@ -293,11 +301,11 @@
     fill(104, 7, 10, 1, 10);
     addBuilding(86, 1, 8, 5, '#8a6238');
     addBuilding(104, 1, 8, 5, '#8a6238');
-    addBuilding(86, 12, 8, 3, '#8a6238');
+    addBuilding(86, 12, 8, 3, '#4a8a7a');
     addBuilding(104, 12, 7, 3, '#8a6238');
     addBuilding(90, 20, 6, 3, '#8a6238');
     addBuilding(74, 56, 8, 5, '#7a4a28');
-    addBuilding(88, 58, 6, 4, '#7a4a28');
+    addBuilding(88, 58, 6, 4, '#4a8a7a');
     var trees = [
       [66, 4], [70, 6], [74, 3], [78, 12], [82, 6], [110, 6], [114, 12],
       [66, 32], [72, 40], [108, 28], [112, 36], [64, 56], [68, 60],
@@ -471,6 +479,14 @@
         if (ahead > 0) return true;
       }
     }
+    if (drive.on || drive.parked) {
+      o = drive;
+      b = carSize(o);
+      if (aabb(nx - a.w / 2, ny - a.h / 2, a.w + 2, a.h + 2, o.x - b.w / 2, o.y - b.h / 2, b.w, b.h)) {
+        ahead = (o.x - c.x) * fdx + (o.y - c.y) * fdy;
+        if (ahead > 0) return true;
+      }
+    }
     return false;
   }
 
@@ -595,6 +611,7 @@
     }
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
+      'Teal buildings rent cars. Drive the roads yourself. Space parks it.',
       'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -607,7 +624,7 @@
     } else {
       npc('rex').lines = ['Forcefield is live. The world stays. Go home. Or do not. The meters still eat coins.'];
     }
-    npc('kit').lines = ['Kit the cat. Mall, plus the country. Highway east. Farm is a long walk or a pole.'];
+    npc('kit').lines = ['Kit the cat. Mall, plus the country. Teal lot rents a car. Highway east. Farm is a long walk or a pole.'];
     npc('jan').lines = [
       'Jan the rabbit. Energy first. Walking spends it. The yellow bar is up top.',
       'Empty bar means you crawl at one third speed. Get to a shop. Plaza, this mall, village, farm stand.',
@@ -704,6 +721,8 @@
     ride.vehicle = null;
     ride.path = null;
     ride.phase = null;
+    drive.on = false;
+    drive.parked = false;
     show(ui.title, false);
     show(ui.dialog, false);
     show(ui.card, false);
@@ -889,6 +908,120 @@
     beep(720, 0.1, 0.05, 'sine');
   }
 
+  function drawRental(s) {
+    var gx = Math.round(s.x - cam.x);
+    var gy = Math.round(s.y - cam.y);
+    pix(gx - 1, gy + 4, 13, 8, '#3a5248');
+    pix(gx - 2, gy + 1, 15, 4, '#3cb8a0');
+    pix(gx + 2, gy + 6, 8, 4, '#3cb8a0');
+    pix(gx + 3, gy + 7, 2, 2, '#222');
+    pix(gx + 7, gy + 7, 2, 2, '#222');
+    pix(gx + 4, gy - 1, 5, 3, C.paper);
+    pix(gx + 5, gy - 1, 3, 2, '#3cb8a0');
+  }
+
+  function roadTile(id) {
+    return id === 1 || id === 5 || id === 6 || id === 9;
+  }
+
+  function roadOk(x, y, sz) {
+    var hw = sz.w / 2;
+    var hh = sz.h / 2;
+    return roadTile(tileAt(x - hw + 1, y - hh + 1)) &&
+      roadTile(tileAt(x + hw - 1, y - hh + 1)) &&
+      roadTile(tileAt(x - hw + 1, y + hh - 1)) &&
+      roadTile(tileAt(x + hw - 1, y + hh - 1));
+  }
+
+  function nearestPed(px, py) {
+    var tx = Math.floor(px / TILE);
+    var ty = Math.floor(py / TILE);
+    var r, dx, dy, x, y;
+    if (pedWalk(px, py)) return { x: px, y: py };
+    for (r = 1; r <= 5; r++) {
+      for (dy = -r; dy <= r; dy++) {
+        for (dx = -r; dx <= r; dx++) {
+          x = (tx + dx) * TILE + 4;
+          y = (ty + dy) * TILE + 4;
+          if (pedWalk(x, y) && !blocked(x, y, CHAR_W, CHAR_H)) return { x: x, y: y };
+        }
+      }
+    }
+    return { x: px + 8, y: py };
+  }
+
+  function rentCar() {
+    var pad = nearestRoad(player.x, player.y);
+    drive.on = true;
+    drive.parked = false;
+    drive.x = pad.x;
+    drive.y = pad.y;
+    drive.dir = 2;
+    drive.kind = 'rental';
+    player.x = pad.x;
+    player.y = pad.y;
+    interactLock = true;
+    actEdge = false;
+    beep(360, 0.1, 0.05, 'triangle');
+  }
+
+  function parkCar() {
+    var n = nearestPed(drive.x, drive.y);
+    player.x = n.x;
+    player.y = n.y;
+    drive.on = false;
+    drive.parked = true;
+    interactLock = true;
+    actEdge = false;
+    beep(280, 0.08, 0.04);
+  }
+
+  function boardCar() {
+    drive.on = true;
+    drive.parked = false;
+    player.x = drive.x;
+    player.y = drive.y;
+    interactLock = true;
+    actEdge = false;
+    beep(360, 0.08, 0.04, 'triangle');
+  }
+
+  function returnCar() {
+    if (drive.on) parkCar();
+    drive.on = false;
+    drive.parked = false;
+    interactLock = true;
+    actEdge = false;
+    beep(200, 0.1, 0.04, 'sine');
+  }
+
+  function updateDrive(dt) {
+    var spd = 140;
+    var vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
+    var vy = (hold.up ? -spd : 0) + (hold.down ? spd : 0);
+    if (vx && vy) {
+      vx *= 0.72;
+      vy *= 0.72;
+    }
+    if (Math.abs(vx) > Math.abs(vy)) {
+      if (vx > 0) drive.dir = 2;
+      if (vx < 0) drive.dir = 1;
+    } else if (vy) {
+      drive.dir = vy > 0 ? 0 : 3;
+    }
+    var sz = carSize(drive);
+    var nx = drive.x + vx * dt;
+    var ny = drive.y + vy * dt;
+    if (roadOk(nx, drive.y, sz)) drive.x = nx;
+    if (roadOk(drive.x, ny, sz)) drive.y = ny;
+    player.x = drive.x;
+    player.y = drive.y;
+    cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
+    cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, map.length * TILE - VH));
+    cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
+    cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
+  }
+
   function drawPole(p) {
     var gx = Math.round(p.x - cam.x);
     var gy = Math.round(p.y - cam.y);
@@ -1022,6 +1155,7 @@
   function carColor(kind) {
     if (kind === 'bus') return C.bus;
     if (kind === 'taxi') return C.taxi;
+    if (kind === 'rental') return '#3cb8a0';
     return '#8b93a3';
   }
 
@@ -1156,6 +1290,9 @@
       shops.forEach(function (s) {
         if (s.place === place) drawShop(s);
       });
+      rentals.forEach(function (s) {
+        if (s.place === place) drawRental(s);
+      });
       walkers.forEach(function (w) {
         if (w.place === place) drawAnimal(w.x, w.y, w.species, w.dir, null, w.wait <= 0);
       });
@@ -1172,9 +1309,10 @@
         }
       });
     }
-    if (!nuked && (scene !== 'ride' || ride.phase !== 'go')) {
+    if (!nuked && !drive.on && (scene !== 'ride' || ride.phase !== 'go')) {
       drawAnimal(player.x, player.y, 'fox', player.dir, quest === 'have' || quest === 'build' ? C.paper : C.accent, player.walk);
     }
+    if (!nuked && (drive.on || drive.parked)) drawCar(drive);
     drawVehicle();
     if (place === 'city') drawForcefield();
     if (flash > 0) {
@@ -1188,36 +1326,41 @@
   }
 
   function updateWorld(dt) {
-    var spd = energy <= 0 ? 16 : 48;
-    player.vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
-    player.vy = (hold.up ? -spd : 0) + (hold.down ? spd : 0);
-    if (player.vx && player.vy) {
-      player.vx *= 0.72;
-      player.vy *= 0.72;
+    var spd, ox, oy, nx, ny;
+    if (drive.on) {
+      updateDrive(dt);
+    } else {
+      spd = energy <= 0 ? 16 : 48;
+      player.vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
+      player.vy = (hold.up ? -spd : 0) + (hold.down ? spd : 0);
+      if (player.vx && player.vy) {
+        player.vx *= 0.72;
+        player.vy *= 0.72;
+      }
+      if (Math.abs(player.vx) > Math.abs(player.vy)) {
+        if (player.vx > 0) player.dir = 2;
+        if (player.vx < 0) player.dir = 1;
+      } else if (player.vy) {
+        player.dir = player.vy > 0 ? 0 : 3;
+      }
+      player.walk = !!(player.vx || player.vy);
+      ox = player.x;
+      oy = player.y;
+      nx = player.x + player.vx * dt;
+      ny = player.y + player.vy * dt;
+      if (!blocked(nx, player.y, CHAR_W, CHAR_H)) player.x = nx;
+      if (!blocked(player.x, ny, CHAR_W, CHAR_H)) player.y = ny;
+      player.x = clamp(player.x, 0, map[0].length * TILE - CHAR_W);
+      player.y = clamp(player.y, 0, map.length * TILE - CHAR_H);
+      if (Math.abs(player.x - ox) + Math.abs(player.y - oy) > 0.2) {
+        energy = Math.max(0, energy - 2.2 * dt);
+        drawHud();
+      }
+      cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
+      cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, map.length * TILE - VH));
+      cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
+      cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
     }
-    if (Math.abs(player.vx) > Math.abs(player.vy)) {
-      if (player.vx > 0) player.dir = 2;
-      if (player.vx < 0) player.dir = 1;
-    } else if (player.vy) {
-      player.dir = player.vy > 0 ? 0 : 3;
-    }
-    player.walk = !!(player.vx || player.vy);
-    var ox = player.x;
-    var oy = player.y;
-    var nx = player.x + player.vx * dt;
-    var ny = player.y + player.vy * dt;
-    if (!blocked(nx, player.y, CHAR_W, CHAR_H)) player.x = nx;
-    if (!blocked(player.x, ny, CHAR_W, CHAR_H)) player.y = ny;
-    player.x = clamp(player.x, 0, map[0].length * TILE - CHAR_W);
-    player.y = clamp(player.y, 0, map.length * TILE - CHAR_H);
-    if (Math.abs(player.x - ox) + Math.abs(player.y - oy) > 0.2) {
-      energy = Math.max(0, energy - 2.2 * dt);
-      drawHud();
-    }
-    cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
-    cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, map.length * TILE - VH));
-    cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
-    cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
     updateWalkers(dt);
     updateCars(dt);
 
@@ -1238,45 +1381,75 @@
 
     near = null;
     var i, e, d;
-    for (i = 0; i < npcs.length; i++) {
-      e = npcs[i];
-      if (e.place !== place) continue;
-      d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-      if (d < 22) near = { kind: 'npc', e: e, text: 'Talk · ' + e.name };
-    }
-    if (place === 'city') {
-      for (i = 0; i < poles.length; i++) {
-        e = poles[i];
+    if (drive.on) {
+      near = { kind: 'park', text: 'Park · Hop out' };
+      for (i = 0; i < rentals.length; i++) {
+        e = rentals[i];
+        if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 18) near = { kind: 'pole', e: e, text: 'Call · ' + (e.kind === 'bus' ? 'Bus' : 'Taxi') + ' · ' + e.name };
+        if (d < 28) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
       }
-      for (i = 0; i < mallDoors.length; i++) {
-        e = mallDoors[i];
-        if (inDoor(player, e.ox, e.oy, e.ow, e.oh)) {
-          near = { kind: 'mall', e: e, text: 'Enter · Mall' };
-        }
+      for (i = 0; i < pieces.length; i++) {
+        e = pieces[i];
+        if (e.got || e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 26) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
       }
     } else {
-      for (i = 0; i < mallDoors.length; i++) {
-        e = mallDoors[i];
-        if (inDoor(player, e.ix, e.iy, e.iw, e.ih)) {
-          near = { kind: 'exit', e: e, text: 'Exit · Mall' };
+      for (i = 0; i < npcs.length; i++) {
+        e = npcs[i];
+        if (e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 22) near = { kind: 'npc', e: e, text: 'Talk · ' + e.name };
+      }
+      if (place === 'city') {
+        for (i = 0; i < poles.length; i++) {
+          e = poles[i];
+          d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+          if (d < 18) near = { kind: 'pole', e: e, text: 'Call · ' + (e.kind === 'bus' ? 'Bus' : 'Taxi') + ' · ' + e.name };
+        }
+        for (i = 0; i < mallDoors.length; i++) {
+          e = mallDoors[i];
+          if (inDoor(player, e.ox, e.oy, e.ow, e.oh)) {
+            near = { kind: 'mall', e: e, text: 'Enter · Mall' };
+          }
+        }
+      } else {
+        for (i = 0; i < mallDoors.length; i++) {
+          e = mallDoors[i];
+          if (inDoor(player, e.ix, e.iy, e.iw, e.ih)) {
+            near = { kind: 'exit', e: e, text: 'Exit · Mall' };
+          }
         }
       }
+      for (i = 0; i < shops.length; i++) {
+        e = shops[i];
+        if (e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
+      }
+      for (i = 0; i < rentals.length; i++) {
+        e = rentals[i];
+        if (e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 22) {
+          near = drive.parked
+            ? { kind: 'return', e: e, text: 'Return car · ' + e.name }
+            : { kind: 'rent', e: e, text: 'Rent a car · ' + e.name };
+        }
+      }
+      if (drive.parked) {
+        d = Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y);
+        if (d < 22) near = { kind: 'board', text: 'Get in' };
+      }
+      for (i = 0; i < pieces.length; i++) {
+        e = pieces[i];
+        if (e.got || e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 22) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
+      }
     }
-    for (i = 0; i < shops.length; i++) {
-      e = shops[i];
-      if (e.place !== place) continue;
-      d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-      if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
-    }
-    for (i = 0; i < pieces.length; i++) {
-      e = pieces[i];
-      if (e.got || e.place !== place) continue;
-      d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-      if (d < 22) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
-    }
-    if (!near && energy <= 0) {
+    if (!near && energy <= 0 && !drive.on) {
       ui.prompt.textContent = 'No energy · Find a shop';
       show(ui.prompt, true);
     } else if (near) {
@@ -1291,6 +1464,10 @@
       else if (near.kind === 'exit') exitMall(near.e);
       else if (near.kind === 'piece') takePiece(near.e);
       else if (near.kind === 'shop') useShop(near.e);
+      else if (near.kind === 'rent') rentCar();
+      else if (near.kind === 'park') parkCar();
+      else if (near.kind === 'board') boardCar();
+      else if (near.kind === 'return') returnCar();
     }
   }
 
@@ -1649,6 +1826,8 @@
     ride.vehicle = null;
     ride.path = null;
     ride.phase = null;
+    drive.on = false;
+    drive.parked = false;
     nuked = false;
     nukeT = 0;
     shake = 0;
