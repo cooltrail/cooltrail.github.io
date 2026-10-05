@@ -637,7 +637,7 @@
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
       'Teal buildings rent cars. Gas dies fast. Empty tank stops dead.',
-      'Walk a jerry can back to the car. Yellow pumps only work if you still have fuel.',
+      'Pumps fill a jerry can. Walk it to the car and pour it in.',
       'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -965,12 +965,16 @@
   }
 
   function usePump() {
-    gas = 100;
-    save();
-    drawHud();
+    if (jerry) {
+      interactLock = true;
+      actEdge = false;
+      beep(140, 0.08, 0.04);
+      return;
+    }
+    jerry = true;
     interactLock = true;
     actEdge = false;
-    beep(640, 0.1, 0.05, 'sine');
+    beep(500, 0.1, 0.05, 'square');
   }
 
   function roadTile(id) {
@@ -1026,6 +1030,11 @@
   }
 
   function pourCan() {
+    if (!jerry || gas >= 100) {
+      interactLock = true;
+      actEdge = false;
+      return;
+    }
     jerry = false;
     gas = 100;
     save();
@@ -1506,6 +1515,7 @@
     var i, e, d;
     if (drive.on) {
       near = { kind: 'park', text: 'Park · Hop out' };
+      if (jerry && gas < 100) near = { kind: 'pour', text: 'Pour jerry can' };
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
         if (e.place !== place) continue;
@@ -1516,8 +1526,9 @@
         e = pumps[i];
         if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 26) near = { kind: 'pump', e: e, text: gas >= 100 ? 'Pump · Tank full' : 'Pump · Fill gas' };
+        if (d < 26) near = { kind: 'pump', e: e, text: jerry ? 'Already have a jerry can' : 'Pump · Fill jerry can' };
       }
+      if (jerry && gas < 100) near = { kind: 'pour', text: 'Pour jerry can' };
       for (i = 0; i < pieces.length; i++) {
         e = pieces[i];
         if (e.got || e.place !== place) continue;
@@ -1557,13 +1568,11 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
       }
-      if (!(drive.parked && gas <= 0)) {
-        for (i = 0; i < pumps.length; i++) {
-          e = pumps[i];
-          if (e.place !== place) continue;
-          d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-          if (d < 20) near = { kind: 'pump', e: e, text: gas >= 100 ? 'Pump · Tank full' : 'Pump · Fill gas' };
-        }
+      for (i = 0; i < pumps.length; i++) {
+        e = pumps[i];
+        if (e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 20) near = { kind: 'pump', e: e, text: jerry ? 'Already have a jerry can' : 'Pump · Fill jerry can' };
       }
       for (i = 0; i < cans.length; i++) {
         e = cans[i];
@@ -1584,7 +1593,7 @@
       if (drive.parked) {
         d = Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y);
         if (d < 22) {
-          if (gas <= 0 && jerry) near = { kind: 'pour', text: 'Pour jerry can' };
+          if (jerry && gas < 100) near = { kind: 'pour', text: 'Pour jerry can' };
           else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Get a jerry can' };
           else near = { kind: 'board', text: 'Get in' };
         }
