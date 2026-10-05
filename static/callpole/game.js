@@ -40,6 +40,8 @@
     pad: document.getElementById('pad'),
     energy: document.getElementById('energy-fill'),
     energyWrap: document.getElementById('energy-wrap'),
+    gas: document.getElementById('gas-fill'),
+    gasWrap: document.getElementById('gas-wrap'),
     clock: document.getElementById('clock'),
     clockWrap: document.getElementById('clock-wrap'),
     endK: document.getElementById('end-k'),
@@ -98,8 +100,10 @@
   var mallDoors = [];
   var shops = [];
   var rentals = [];
+  var pumps = [];
   var drive = { on: false, parked: false, x: 0, y: 0, dir: 2, kind: 'rental' };
   var energy = 100;
+  var gas = 100;
   var near = null;
   var talk = { lines: [], i: 0, who: '', after: null };
   var quest = 'idle';
@@ -278,6 +282,15 @@
       { name: 'East lot', place: 'city', x: 51 * TILE, y: 15 * TILE },
       { name: 'Village lot', place: 'city', x: 88 * TILE, y: 15 * TILE },
       { name: 'Farm lot', place: 'city', x: 90 * TILE, y: 53 * TILE }
+    ];
+    pumps = [
+      { name: 'West pump', place: 'city', x: 6 * TILE, y: 15 * TILE },
+      { name: 'Plaza pump', place: 'city', x: 18 * TILE, y: 15 * TILE },
+      { name: 'East pump', place: 'city', x: 52 * TILE, y: 15 * TILE },
+      { name: 'Mall pump', place: 'city', x: 28 * TILE, y: 27 * TILE },
+      { name: 'Village pump', place: 'city', x: 89 * TILE, y: 15 * TILE },
+      { name: 'Farm pump', place: 'city', x: 90 * TILE, y: 50 * TILE },
+      { name: 'Base pump', place: 'city', x: 12 * TILE, y: 50 * TILE }
     ];
     bootWalkers();
     bootCars();
@@ -611,7 +624,7 @@
     }
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
-      'Teal buildings rent cars. Drive the roads yourself. Space parks it.',
+      'Teal buildings rent cars. Gas dies fast. Yellow pumps fill the tank.',
       'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -660,6 +673,7 @@
       if (quest === 'build') quest = pieceCount() >= 6 ? 'have' : 'hunt';
       if (quest === 'have' && pieceCount() < 6) quest = 'hunt';
       if (typeof d.energy === 'number') energy = clamp(d.energy, 0, 100);
+      if (typeof d.gas === 'number') gas = clamp(d.gas, 0, 100);
       if (typeof d.nukeLeft === 'number') nukeLeft = clamp(d.nukeLeft, 0, NUKE_SECS);
     } catch (e) {}
   }
@@ -670,6 +684,7 @@
       muted: muted,
       pieces: pieces.map(function (p) { return p.got; }),
       energy: energy,
+      gas: gas,
       nukeLeft: nukeLeft
     }));
   }
@@ -688,6 +703,11 @@
       ui.energy.style.width = Math.max(0, energy) + '%';
       ui.energyWrap.classList.toggle('low', energy <= 22);
       ui.energyWrap.classList.toggle('empty', energy <= 0);
+    }
+    if (ui.gas) {
+      ui.gas.style.width = Math.max(0, gas) + '%';
+      ui.gasWrap.classList.toggle('low', gas <= 22);
+      ui.gasWrap.classList.toggle('empty', gas <= 0);
     }
     if (ui.clock) {
       ui.clock.textContent = quest === 'saved' ? 'SAFE' : clockText();
@@ -920,6 +940,26 @@
     pix(gx + 5, gy - 1, 3, 2, '#3cb8a0');
   }
 
+  function drawPump(s) {
+    var gx = Math.round(s.x - cam.x);
+    var gy = Math.round(s.y - cam.y);
+    pix(gx + 1, gy + 8, 6, 2, '#3a2418');
+    pix(gx + 2, gy + 1, 5, 8, '#3a3a42');
+    pix(gx + 3, gy + 2, 3, 3, C.accent);
+    pix(gx + 7, gy + 3, 3, 1, '#222');
+    pix(gx + 9, gy + 3, 1, 5, '#222');
+    pix(gx + 3, gy - 1, 3, 2, C.verm);
+  }
+
+  function usePump() {
+    gas = 100;
+    save();
+    drawHud();
+    interactLock = true;
+    actEdge = false;
+    beep(640, 0.1, 0.05, 'sine');
+  }
+
   function roadTile(id) {
     return id === 1 || id === 5 || id === 6 || id === 9;
   }
@@ -996,7 +1036,9 @@
   }
 
   function updateDrive(dt) {
-    var spd = 140;
+    var spd = gas <= 0 ? 46 : 140;
+    var ox = drive.x;
+    var oy = drive.y;
     var vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
     var vy = (hold.up ? -spd : 0) + (hold.down ? spd : 0);
     if (vx && vy) {
@@ -1014,6 +1056,10 @@
     var ny = drive.y + vy * dt;
     if (roadOk(nx, drive.y, sz)) drive.x = nx;
     if (roadOk(drive.x, ny, sz)) drive.y = ny;
+    if (Math.abs(drive.x - ox) + Math.abs(drive.y - oy) > 0.2) {
+      gas = Math.max(0, gas - 12 * dt);
+      drawHud();
+    }
     player.x = drive.x;
     player.y = drive.y;
     cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
@@ -1293,6 +1339,9 @@
       rentals.forEach(function (s) {
         if (s.place === place) drawRental(s);
       });
+      pumps.forEach(function (s) {
+        if (s.place === place) drawPump(s);
+      });
       walkers.forEach(function (w) {
         if (w.place === place) drawAnimal(w.x, w.y, w.species, w.dir, null, w.wait <= 0);
       });
@@ -1389,6 +1438,12 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 28) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
       }
+      for (i = 0; i < pumps.length; i++) {
+        e = pumps[i];
+        if (e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 26) near = { kind: 'pump', e: e, text: gas >= 100 ? 'Pump · Tank full' : 'Pump · Fill gas' };
+      }
       for (i = 0; i < pieces.length; i++) {
         e = pieces[i];
         if (e.got || e.place !== place) continue;
@@ -1428,6 +1483,12 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
       }
+      for (i = 0; i < pumps.length; i++) {
+        e = pumps[i];
+        if (e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 20) near = { kind: 'pump', e: e, text: gas >= 100 ? 'Pump · Tank full' : 'Pump · Fill gas' };
+      }
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
         if (e.place !== place) continue;
@@ -1449,7 +1510,10 @@
         if (d < 22) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
       }
     }
-    if (!near && energy <= 0 && !drive.on) {
+    if (!near && drive.on && gas <= 0) {
+      ui.prompt.textContent = 'No gas · Find a pump';
+      show(ui.prompt, true);
+    } else if (!near && energy <= 0 && !drive.on) {
       ui.prompt.textContent = 'No energy · Find a shop';
       show(ui.prompt, true);
     } else if (near) {
@@ -1464,6 +1528,7 @@
       else if (near.kind === 'exit') exitMall(near.e);
       else if (near.kind === 'piece') takePiece(near.e);
       else if (near.kind === 'shop') useShop(near.e);
+      else if (near.kind === 'pump') usePump(near.e);
       else if (near.kind === 'rent') rentCar();
       else if (near.kind === 'park') parkCar();
       else if (near.kind === 'board') boardCar();
@@ -1910,6 +1975,7 @@
     quest = 'idle';
     lattice = 0;
     energy = 100;
+    gas = 100;
     nukeLeft = NUKE_SECS;
     nuked = false;
     nukeT = 0;
