@@ -44,6 +44,8 @@
     gasWrap: document.getElementById('gas-wrap'),
     clock: document.getElementById('clock'),
     clockWrap: document.getElementById('clock-wrap'),
+    slots: document.getElementById('slots'),
+    slot1: document.getElementById('slot-1'),
     endK: document.getElementById('end-k'),
     endH: document.getElementById('end-h'),
     endP: document.getElementById('end-p')
@@ -102,7 +104,8 @@
   var rentals = [];
   var pumps = [];
   var cans = [];
-  var jerry = false;
+  var slots = [null];
+  var equipped = 0;
   var drive = { on: false, parked: false, x: 0, y: 0, dir: 2, kind: 'rental' };
   var energy = 100;
   var gas = 100;
@@ -303,7 +306,8 @@
       { place: 'city', x: 24 * TILE, y: 66 * TILE, gone: 0 },
       { place: 'city', x: 70 * TILE, y: 28 * TILE, gone: 0 }
     ];
-    jerry = false;
+    slots = [null];
+    equipped = 0;
     bootWalkers();
     bootCars();
     if (!pieces.length) resetPieces();
@@ -637,7 +641,7 @@
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
       'Teal buildings rent cars. Gas dies fast. Empty tank stops dead.',
-      'Pumps fill a jerry can. Walk it to the car and pour it in.',
+      'Pumps fill one jerry can. It goes in slot 1. Press 1 to equip, then pour.',
       'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -726,6 +730,10 @@
       ui.clock.textContent = quest === 'saved' ? 'SAFE' : clockText();
       ui.clockWrap.classList.toggle('low', nukeLeft <= 60 && quest !== 'saved');
       ui.clockWrap.classList.toggle('empty', nukeLeft <= 15 && quest !== 'saved');
+    }
+    if (ui.slot1) {
+      ui.slot1.classList.toggle('has', hasJerry());
+      ui.slot1.classList.toggle('equip', equipped === 1);
     }
   }
 
@@ -964,14 +972,43 @@
     pix(gx + 3, gy - 1, 3, 2, C.verm);
   }
 
+  function hasJerry() {
+    return slots[0] === 'jerry';
+  }
+
+  function giveJerry() {
+    if (hasJerry()) return false;
+    slots[0] = 'jerry';
+    drawHud();
+    return true;
+  }
+
+  function canPourHere() {
+    if (!hasJerry() || equipped !== 1 || gas >= 100) return false;
+    if (drive.on) return true;
+    if (!drive.parked) return false;
+    return Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y) < 26;
+  }
+
+  function equipSlot(n) {
+    if (n !== 1) return;
+    if (!hasJerry()) {
+      beep(140, 0.08, 0.04);
+      return;
+    }
+    equipped = equipped === 1 ? 0 : 1;
+    drawHud();
+    beep(420, 0.07, 0.04, 'square');
+    if (equipped === 1 && canPourHere()) pourCan();
+  }
+
   function usePump() {
-    if (jerry) {
+    if (!giveJerry()) {
       interactLock = true;
       actEdge = false;
       beep(140, 0.08, 0.04);
       return;
     }
-    jerry = true;
     interactLock = true;
     actEdge = false;
     beep(500, 0.1, 0.05, 'square');
@@ -1017,12 +1054,11 @@
   }
 
   function takeCan(c) {
-    if (jerry) {
+    if (!giveJerry()) {
       interactLock = true;
       actEdge = false;
       return;
     }
-    jerry = true;
     c.gone = 18;
     interactLock = true;
     actEdge = false;
@@ -1030,12 +1066,13 @@
   }
 
   function pourCan() {
-    if (!jerry || gas >= 100) {
+    if (!hasJerry() || equipped !== 1 || gas >= 100) {
       interactLock = true;
       actEdge = false;
       return;
     }
-    jerry = false;
+    slots[0] = null;
+    equipped = 0;
     gas = 100;
     save();
     drawHud();
@@ -1046,7 +1083,7 @@
 
   function rentCar() {
     if (gas <= 0) {
-      if (jerry) pourCan();
+      if (hasJerry() && equipped === 1) pourCan();
       else {
         interactLock = true;
         actEdge = false;
@@ -1081,7 +1118,7 @@
 
   function boardCar() {
     if (gas <= 0) {
-      if (jerry) pourCan();
+      if (hasJerry() && equipped === 1) pourCan();
       else {
         interactLock = true;
         actEdge = false;
@@ -1515,7 +1552,11 @@
     var i, e, d;
     if (drive.on) {
       near = { kind: 'park', text: 'Park · Hop out' };
-      if (jerry && gas < 100) near = { kind: 'pour', text: 'Pour jerry can' };
+      if (hasJerry() && gas < 100) {
+        near = equipped === 1
+          ? { kind: 'pour', text: 'Pour jerry can' }
+          : { kind: 'need1', text: 'Press 1 · Equip jerry can' };
+      }
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
         if (e.place !== place) continue;
@@ -1526,9 +1567,13 @@
         e = pumps[i];
         if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 26) near = { kind: 'pump', e: e, text: jerry ? 'Already have a jerry can' : 'Pump · Fill jerry can' };
+        if (d < 26) near = { kind: 'pump', e: e, text: hasJerry() ? 'Slot 1 full' : 'Pump · Fill slot 1' };
       }
-      if (jerry && gas < 100) near = { kind: 'pour', text: 'Pour jerry can' };
+      if (hasJerry() && gas < 100) {
+        near = equipped === 1
+          ? { kind: 'pour', text: 'Pour jerry can' }
+          : { kind: 'need1', text: 'Press 1 · Equip jerry can' };
+      }
       for (i = 0; i < pieces.length; i++) {
         e = pieces[i];
         if (e.got || e.place !== place) continue;
@@ -1572,13 +1617,13 @@
         e = pumps[i];
         if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 20) near = { kind: 'pump', e: e, text: jerry ? 'Already have a jerry can' : 'Pump · Fill jerry can' };
+        if (d < 20) near = { kind: 'pump', e: e, text: hasJerry() ? 'Slot 1 full' : 'Pump · Fill slot 1' };
       }
       for (i = 0; i < cans.length; i++) {
         e = cans[i];
         if (e.place !== place || e.gone > 0) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 20) near = { kind: 'can', e: e, text: jerry ? 'Already carrying a jerry can' : 'Pick up · Jerry can' };
+        if (d < 20) near = { kind: 'can', e: e, text: hasJerry() ? 'Slot 1 full' : 'Pick up · Slot 1' };
       }
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
@@ -1586,14 +1631,15 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 22) {
           if (drive.parked) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
-          else if (gas <= 0 && !jerry) near = { kind: 'rent', e: e, text: 'Need a jerry can first' };
+          else if (gas <= 0 && !hasJerry()) near = { kind: 'rent', e: e, text: 'Need a jerry can first' };
           else near = { kind: 'rent', e: e, text: 'Rent a car · ' + e.name };
         }
       }
       if (drive.parked) {
         d = Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y);
         if (d < 22) {
-          if (jerry && gas < 100) near = { kind: 'pour', text: 'Pour jerry can' };
+          if (hasJerry() && gas < 100 && equipped === 1) near = { kind: 'pour', text: 'Pour jerry can' };
+          else if (hasJerry() && gas < 100) near = { kind: 'need1', text: 'Press 1 · Equip jerry can' };
           else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Get a jerry can' };
           else near = { kind: 'board', text: 'Get in' };
         }
@@ -1605,8 +1651,8 @@
         if (d < 22) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
       }
     }
-    if (!near && drive.parked && gas <= 0 && !jerry) {
-      ui.prompt.textContent = 'No gas · Walk a jerry can back';
+    if (!near && drive.parked && gas <= 0 && !hasJerry()) {
+      ui.prompt.textContent = 'No gas · Fill slot 1, press 1';
       show(ui.prompt, true);
     } else if (!near && energy <= 0 && !drive.on) {
       ui.prompt.textContent = 'No energy · Find a shop';
@@ -1981,6 +2027,7 @@
     show(ui.card, false);
     show(ui.dialog, false);
     show(ui.hud, true);
+    if (ui.slots) show(ui.slots, true);
     show(ui.pad, true);
     buildMap();
     bootEntities();
@@ -2017,6 +2064,9 @@
         ensureAudio();
         startNuke(true);
       }
+    }
+    if ((e.key === '1' || e.code === 'Numpad1') && !e.repeat && (scene === 'world' || scene === 'ride')) {
+      equipSlot(1);
     }
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].indexOf(e.key) >= 0) e.preventDefault();
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') {
@@ -2067,13 +2117,21 @@
     });
   }
 
+  if (ui.slot1) {
+    ui.slot1.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (scene === 'world' || scene === 'ride') equipSlot(1);
+    });
+  }
+
   ui.start.addEventListener('click', begin);
   ui.again.addEventListener('click', function () {
     quest = 'idle';
     lattice = 0;
     energy = 100;
     gas = 100;
-    jerry = false;
+    slots = [null];
+    equipped = 0;
     nukeLeft = NUKE_SECS;
     nuked = false;
     nukeT = 0;

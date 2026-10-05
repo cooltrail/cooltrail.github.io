@@ -286,6 +286,56 @@ button {
 
 .hidden { display: none !important; }
 
+#slots {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.slot {
+  pointer-events: auto;
+  width: 3.1rem;
+  height: 3.1rem;
+  padding: 0;
+  border-radius: 0.7rem;
+  background: #fff4d6;
+  color: #3a2418;
+  border: 3px solid #3a2418;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  position: relative;
+}
+
+.slot b {
+  position: absolute;
+  top: 0.1rem;
+  left: 0.28rem;
+  font-size: 0.7rem;
+}
+
+.slot-can {
+  display: none;
+  width: 0.85rem;
+  height: 1.1rem;
+  background: #d94a32;
+  border: 2px solid #3a2418;
+  border-radius: 0.15rem 0.15rem 0.2rem 0.2rem;
+  box-shadow: inset 0 -0.35rem 0 #f5c542;
+}
+
+.slot.has .slot-can { display: block; }
+.slot.equip {
+  background: #ffe08a;
+  box-shadow: 0 0 0 3px #d94a32;
+}
+
 #pad {
   position: absolute;
   inset: auto 0 0.4rem;
