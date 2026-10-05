@@ -101,6 +101,8 @@
   var shops = [];
   var rentals = [];
   var pumps = [];
+  var cans = [];
+  var jerry = false;
   var drive = { on: false, parked: false, x: 0, y: 0, dir: 2, kind: 'rental' };
   var energy = 100;
   var gas = 100;
@@ -292,6 +294,16 @@
       { name: 'Farm pump', place: 'city', x: 90 * TILE, y: 50 * TILE },
       { name: 'Base pump', place: 'city', x: 12 * TILE, y: 50 * TILE }
     ];
+    cans = [
+      { place: 'city', x: 7 * TILE, y: 7 * TILE, gone: 0 },
+      { place: 'city', x: 40 * TILE, y: 23 * TILE, gone: 0 },
+      { place: 'city', x: 26 * TILE, y: 26 * TILE, gone: 0 },
+      { place: 'city', x: 104 * TILE, y: 15 * TILE, gone: 0 },
+      { place: 'city', x: 76 * TILE, y: 61 * TILE, gone: 0 },
+      { place: 'city', x: 24 * TILE, y: 66 * TILE, gone: 0 },
+      { place: 'city', x: 70 * TILE, y: 28 * TILE, gone: 0 }
+    ];
+    jerry = false;
     bootWalkers();
     bootCars();
     if (!pieces.length) resetPieces();
@@ -624,7 +636,8 @@
     }
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
-      'Teal buildings rent cars. Gas dies fast. Yellow pumps fill the tank.',
+      'Teal buildings rent cars. Gas dies fast. Empty tank stops dead.',
+      'Walk a jerry can back to the car. Yellow pumps only work if you still have fuel.',
       'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -990,7 +1003,48 @@
     return { x: px + 8, y: py };
   }
 
+  function drawCan(c) {
+    var gx = Math.round(c.x - cam.x);
+    var gy = Math.round(c.y - cam.y);
+    pix(gx + 1, gy + 2, 5, 7, C.verm);
+    pix(gx + 2, gy + 3, 3, 4, C.accent);
+    pix(gx + 2, gy + 1, 3, 2, '#3a2418');
+    pix(gx + 3, gy, 2, 2, '#3a2418');
+  }
+
+  function takeCan(c) {
+    if (jerry) {
+      interactLock = true;
+      actEdge = false;
+      return;
+    }
+    jerry = true;
+    c.gone = 18;
+    interactLock = true;
+    actEdge = false;
+    beep(500, 0.1, 0.05, 'square');
+  }
+
+  function pourCan() {
+    jerry = false;
+    gas = 100;
+    save();
+    drawHud();
+    interactLock = true;
+    actEdge = false;
+    beep(640, 0.12, 0.05, 'sine');
+  }
+
   function rentCar() {
+    if (gas <= 0) {
+      if (jerry) pourCan();
+      else {
+        interactLock = true;
+        actEdge = false;
+        beep(140, 0.08, 0.04);
+        return;
+      }
+    }
     var pad = nearestRoad(player.x, player.y);
     drive.on = true;
     drive.parked = false;
@@ -1017,6 +1071,15 @@
   }
 
   function boardCar() {
+    if (gas <= 0) {
+      if (jerry) pourCan();
+      else {
+        interactLock = true;
+        actEdge = false;
+        beep(140, 0.08, 0.04);
+        return;
+      }
+    }
     drive.on = true;
     drive.parked = false;
     player.x = drive.x;
@@ -1036,7 +1099,11 @@
   }
 
   function updateDrive(dt) {
-    var spd = gas <= 0 ? 46 : 140;
+    if (gas <= 0) {
+      parkCar();
+      return;
+    }
+    var spd = 140;
     var ox = drive.x;
     var oy = drive.y;
     var vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
@@ -1342,6 +1409,9 @@
       pumps.forEach(function (s) {
         if (s.place === place) drawPump(s);
       });
+      cans.forEach(function (c) {
+        if (c.place === place && c.gone <= 0) drawCan(c);
+      });
       walkers.forEach(function (w) {
         if (w.place === place) drawAnimal(w.x, w.y, w.species, w.dir, null, w.wait <= 0);
       });
@@ -1412,6 +1482,10 @@
     }
     updateWalkers(dt);
     updateCars(dt);
+    var ci;
+    for (ci = 0; ci < cans.length; ci++) {
+      if (cans[ci].gone > 0) cans[ci].gone -= dt;
+    }
 
     if (quest === 'build') {
       lattice = Math.min(1, lattice + dt * 0.35);
@@ -1483,25 +1557,37 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
       }
-      for (i = 0; i < pumps.length; i++) {
-        e = pumps[i];
-        if (e.place !== place) continue;
+      if (!(drive.parked && gas <= 0)) {
+        for (i = 0; i < pumps.length; i++) {
+          e = pumps[i];
+          if (e.place !== place) continue;
+          d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+          if (d < 20) near = { kind: 'pump', e: e, text: gas >= 100 ? 'Pump · Tank full' : 'Pump · Fill gas' };
+        }
+      }
+      for (i = 0; i < cans.length; i++) {
+        e = cans[i];
+        if (e.place !== place || e.gone > 0) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 20) near = { kind: 'pump', e: e, text: gas >= 100 ? 'Pump · Tank full' : 'Pump · Fill gas' };
+        if (d < 20) near = { kind: 'can', e: e, text: jerry ? 'Already carrying a jerry can' : 'Pick up · Jerry can' };
       }
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
         if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 22) {
-          near = drive.parked
-            ? { kind: 'return', e: e, text: 'Return car · ' + e.name }
-            : { kind: 'rent', e: e, text: 'Rent a car · ' + e.name };
+          if (drive.parked) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
+          else if (gas <= 0 && !jerry) near = { kind: 'rent', e: e, text: 'Need a jerry can first' };
+          else near = { kind: 'rent', e: e, text: 'Rent a car · ' + e.name };
         }
       }
       if (drive.parked) {
         d = Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y);
-        if (d < 22) near = { kind: 'board', text: 'Get in' };
+        if (d < 22) {
+          if (gas <= 0 && jerry) near = { kind: 'pour', text: 'Pour jerry can' };
+          else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Get a jerry can' };
+          else near = { kind: 'board', text: 'Get in' };
+        }
       }
       for (i = 0; i < pieces.length; i++) {
         e = pieces[i];
@@ -1510,8 +1596,8 @@
         if (d < 22) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
       }
     }
-    if (!near && drive.on && gas <= 0) {
-      ui.prompt.textContent = 'No gas · Find a pump';
+    if (!near && drive.parked && gas <= 0 && !jerry) {
+      ui.prompt.textContent = 'No gas · Walk a jerry can back';
       show(ui.prompt, true);
     } else if (!near && energy <= 0 && !drive.on) {
       ui.prompt.textContent = 'No energy · Find a shop';
@@ -1529,6 +1615,8 @@
       else if (near.kind === 'piece') takePiece(near.e);
       else if (near.kind === 'shop') useShop(near.e);
       else if (near.kind === 'pump') usePump(near.e);
+      else if (near.kind === 'can') takeCan(near.e);
+      else if (near.kind === 'pour') pourCan();
       else if (near.kind === 'rent') rentCar();
       else if (near.kind === 'park') parkCar();
       else if (near.kind === 'board') boardCar();
@@ -1976,6 +2064,7 @@
     lattice = 0;
     energy = 100;
     gas = 100;
+    jerry = false;
     nukeLeft = NUKE_SECS;
     nuked = false;
     nukeT = 0;
