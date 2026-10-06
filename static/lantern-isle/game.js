@@ -1589,7 +1589,6 @@
     var i, e, d;
     if (drive.on) {
       near = { kind: 'park', text: 'Exit · Hop out' };
-      if (pourReady()) near = pourReady();
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
         if (e.place !== place) continue;
@@ -1608,7 +1607,6 @@
           if (d < 26) near = { kind: 'pump', e: e, text: pumpText() };
         }
       }
-      if (pourReady() && jerryFull()) near = pourReady();
       for (i = 0; i < pieces.length; i++) {
         e = pieces[i];
         if (e.got || e.place !== place) continue;
