@@ -1137,11 +1137,6 @@
   }
 
   function parkCar() {
-    if (gas > 0) {
-      interactLock = true;
-      actEdge = false;
-      return;
-    }
     var n = nearestPed(drive.x, drive.y);
     player.x = n.x;
     player.y = n.y;
@@ -1191,7 +1186,7 @@
       parkCar();
       return;
     }
-    var spd = 140;
+    var spd = 108;
     var ox = drive.x;
     var oy = drive.y;
     var vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
@@ -1212,7 +1207,7 @@
     if (roadOk(nx, drive.y, sz)) drive.x = nx;
     if (roadOk(drive.x, ny, sz)) drive.y = ny;
     if (Math.abs(drive.x - ox) + Math.abs(drive.y - oy) > 0.2) {
-      gas = Math.max(0, gas - 12 * dt);
+      gas = Math.max(0, gas - 4 * dt);
       drawHud();
     }
     player.x = drive.x;
@@ -1593,7 +1588,7 @@
     near = null;
     var i, e, d;
     if (drive.on) {
-      near = null;
+      near = { kind: 'park', text: 'Exit · Hop out' };
       if (pourReady()) near = pourReady();
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
