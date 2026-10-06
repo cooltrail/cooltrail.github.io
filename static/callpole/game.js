@@ -297,15 +297,7 @@
       { name: 'Farm pump', place: 'city', x: 90 * TILE, y: 50 * TILE },
       { name: 'Base pump', place: 'city', x: 12 * TILE, y: 50 * TILE }
     ];
-    cans = [
-      { place: 'city', x: 7 * TILE, y: 7 * TILE, gone: 0 },
-      { place: 'city', x: 40 * TILE, y: 23 * TILE, gone: 0 },
-      { place: 'city', x: 26 * TILE, y: 26 * TILE, gone: 0 },
-      { place: 'city', x: 104 * TILE, y: 15 * TILE, gone: 0 },
-      { place: 'city', x: 76 * TILE, y: 61 * TILE, gone: 0 },
-      { place: 'city', x: 24 * TILE, y: 66 * TILE, gone: 0 },
-      { place: 'city', x: 70 * TILE, y: 28 * TILE, gone: 0 }
-    ];
+    cans = [];
     slots = [null];
     equipped = 0;
     bootWalkers();
@@ -627,21 +619,36 @@
       npc('mira').lines = [
         'Mira. Arctic fox. Civic works. The clouds are not weather.',
         'The forcefield blueprint was six pieces. I lost every one.',
-        'Six minutes on the clock. Then the map nukes. City, mall, village, farm. Then South Base.'
+        'Six minutes on the clock. Then the map nukes. City, mall, village, farm. Then South Base.',
+        hasJerry()
+          ? 'Slot 1 is full. Press 1 to equip the can, then pour it in a rental.'
+          : 'Take this jerry can. Slot 1. Press 1 to equip. Come back if you empty it.'
       ];
     } else if (quest === 'hunt') {
       npc('mira').lines = n >= 6
-        ? ['That is all six. Rex at South Base. Do not stop for snacks.']
-        : ['That is ' + n + ' of 6. Mall, village past the highway, farm south. Check the map.'];
+        ? [
+          'That is all six. Rex at South Base. Do not stop for snacks.',
+          hasJerry() ? 'You already have a can.' : 'Another jerry can. Slot 1. Press 1 to equip.'
+        ]
+        : [
+          'That is ' + n + ' of 6. Mall, village past the highway, farm south. Check the map.',
+          hasJerry() ? 'Slot 1 is full. Press 1 at the car.' : 'Here. A jerry can for the rental. Slot 1.'
+        ];
     } else if (quest === 'have') {
-      npc('mira').lines = ['You still have the set? South. The base. Poles if you want speed.'];
+      npc('mira').lines = [
+        'You still have the set? South. The base. Poles if you want speed.',
+        hasJerry() ? 'You already have a can.' : 'Jerry can. Slot 1. Press 1 to equip.'
+      ];
     } else {
-      npc('mira').lines = ['I felt it lock in. A whole sky of glass. We get to keep the world.'];
+      npc('mira').lines = [
+        'I felt it lock in. A whole sky of glass. We get to keep the world.',
+        hasJerry() ? 'Keep the can. I have more if you pour it out.' : 'One more jerry can. Old habit.'
+      ];
     }
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
       'Teal buildings rent cars. Gas dies fast. Empty tank stops dead.',
-      'Pumps fill one jerry can. It goes in slot 1. Press 1 to equip, then pour.',
+      'Jerry cans come from Mira at the plaza. Slot 1. Press 1 to equip, then pour.',
       'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -1563,12 +1570,6 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 28) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
       }
-      for (i = 0; i < pumps.length; i++) {
-        e = pumps[i];
-        if (e.place !== place) continue;
-        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 26) near = { kind: 'pump', e: e, text: hasJerry() ? 'Slot 1 full' : 'Pump · Fill slot 1' };
-      }
       if (hasJerry() && gas < 100) {
         near = equipped === 1
           ? { kind: 'pour', text: 'Pour jerry can' }
@@ -1613,12 +1614,6 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
       }
-      for (i = 0; i < pumps.length; i++) {
-        e = pumps[i];
-        if (e.place !== place) continue;
-        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 20) near = { kind: 'pump', e: e, text: hasJerry() ? 'Slot 1 full' : 'Pump · Fill slot 1' };
-      }
       for (i = 0; i < cans.length; i++) {
         e = cans[i];
         if (e.place !== place || e.gone > 0) continue;
@@ -1631,7 +1626,7 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 22) {
           if (drive.parked) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
-          else if (gas <= 0 && !hasJerry()) near = { kind: 'rent', e: e, text: 'Need a jerry can first' };
+          else if (gas <= 0 && !hasJerry()) near = { kind: 'rent', e: e, text: 'Ask Mira for a jerry can' };
           else near = { kind: 'rent', e: e, text: 'Rent a car · ' + e.name };
         }
       }
@@ -1640,7 +1635,7 @@
         if (d < 22) {
           if (hasJerry() && gas < 100 && equipped === 1) near = { kind: 'pour', text: 'Pour jerry can' };
           else if (hasJerry() && gas < 100) near = { kind: 'need1', text: 'Press 1 · Equip jerry can' };
-          else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Get a jerry can' };
+          else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Talk to Mira' };
           else near = { kind: 'board', text: 'Get in' };
         }
       }
@@ -1652,7 +1647,7 @@
       }
     }
     if (!near && drive.parked && gas <= 0 && !hasJerry()) {
-      ui.prompt.textContent = 'No gas · Fill slot 1, press 1';
+      ui.prompt.textContent = 'No gas · Talk to Mira';
       show(ui.prompt, true);
     } else if (!near && energy <= 0 && !drive.on) {
       ui.prompt.textContent = 'No energy · Find a shop';
@@ -1767,12 +1762,15 @@
     talk.lines = e.lines.slice();
     talk.i = 0;
     talk.after = function () {
-      if (e.id === 'mira' && quest === 'idle') {
-        quest = 'hunt';
-        refreshLines();
-        save();
-        drawHud();
-        beep(880, 0.1, 0.05, 'sine');
+      if (e.id === 'mira') {
+        if (quest === 'idle') {
+          quest = 'hunt';
+          refreshLines();
+          save();
+          drawHud();
+          beep(880, 0.1, 0.05, 'sine');
+        }
+        if (giveJerry()) beep(500, 0.1, 0.05, 'square');
       }
       if (e.id === 'rex' && (quest === 'have' || pieceCount() >= 6)) {
         quest = 'build';
