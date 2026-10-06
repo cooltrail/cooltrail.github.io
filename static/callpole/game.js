@@ -1555,7 +1555,7 @@
       player.x = clamp(player.x, 0, map[0].length * TILE - CHAR_W);
       player.y = clamp(player.y, 0, map.length * TILE - CHAR_H);
       if (Math.abs(player.x - ox) + Math.abs(player.y - oy) > 0.2) {
-        energy = Math.max(0, energy - 2.2 * dt);
+        energy = Math.max(0, energy - 0.8 * dt);
         drawHud();
       }
       cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
