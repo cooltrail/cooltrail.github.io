@@ -1138,6 +1138,11 @@
   }
 
   function parkCar() {
+    if (gas > 0) {
+      interactLock = true;
+      actEdge = false;
+      return;
+    }
     var n = nearestPed(drive.x, drive.y);
     player.x = n.x;
     player.y = n.y;
@@ -1589,7 +1594,7 @@
     near = null;
     var i, e, d;
     if (drive.on) {
-      near = { kind: 'park', text: 'Park · Hop out' };
+      near = null;
       if (pourReady()) near = pourReady();
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
