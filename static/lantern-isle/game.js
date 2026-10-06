@@ -621,34 +621,34 @@
         'The forcefield blueprint was six pieces. I lost every one.',
         'Six minutes on the clock. Then the map nukes. City, mall, village, farm. Then South Base.',
         hasJerry()
-          ? 'Slot 1 is full. Press 1 to equip the can, then pour it in a rental.'
-          : 'Take this jerry can. Slot 1. Press 1 to equip. Come back if you empty it.'
+          ? 'You already have a can. Fill it at a yellow pump, then press 1 at the car.'
+          : 'Take this empty jerry can. Slot 1. Rent a car. Fill the can at a pump when you run dry.'
       ];
     } else if (quest === 'hunt') {
       npc('mira').lines = n >= 6
         ? [
           'That is all six. Rex at South Base. Do not stop for snacks.',
-          hasJerry() ? 'You already have a can.' : 'Another jerry can. Slot 1. Press 1 to equip.'
+          hasJerry() ? 'Fill that can at a pump. You cannot return a dead car.' : 'Empty jerry can. Slot 1. Fill it at a pump.'
         ]
         : [
           'That is ' + n + ' of 6. Mall, village past the highway, farm south. Check the map.',
-          hasJerry() ? 'Slot 1 is full. Press 1 at the car.' : 'Here. A jerry can for the rental. Slot 1.'
+          hasJerry() ? 'Pump fills the can. Press 1 at the car to pour.' : 'Empty jerry can. Slot 1. You need it to rent.'
         ];
     } else if (quest === 'have') {
       npc('mira').lines = [
         'You still have the set? South. The base. Poles if you want speed.',
-        hasJerry() ? 'You already have a can.' : 'Jerry can. Slot 1. Press 1 to equip.'
+        hasJerry() ? 'Fill the can at a pump if the tank died.' : 'Empty jerry can. Slot 1.'
       ];
     } else {
       npc('mira').lines = [
         'I felt it lock in. A whole sky of glass. We get to keep the world.',
-        hasJerry() ? 'Keep the can. I have more if you pour it out.' : 'One more jerry can. Old habit.'
+        hasJerry() ? 'Keep the can.' : 'Empty jerry can. Old habit.'
       ];
     }
     npc('dash').lines = [
       'Dash the squirrel. Blue pole is a bus. Yellow pole is a taxi.',
-      'Teal buildings rent cars. Gas dies fast. Empty tank stops dead.',
-      'Jerry cans come from Mira at the plaza. Slot 1. Press 1 to equip, then pour.',
+      'Teal buildings rent cars. Get a can from Mira first. Empty tank stops dead.',
+      'Fill the can at a yellow pump. Press 1 to pour it in. No gas means you cannot return.',
       'Highway runs east to the village. South belt hits the farm. Watch the minimap.'
     ];
     if (quest === 'have' || (quest === 'hunt' && n >= 6)) {
@@ -740,6 +740,7 @@
     }
     if (ui.slot1) {
       ui.slot1.classList.toggle('has', hasJerry());
+      ui.slot1.classList.toggle('full', jerryFull());
       ui.slot1.classList.toggle('equip', equipped === 1);
     }
   }
@@ -980,21 +981,39 @@
   }
 
   function hasJerry() {
-    return slots[0] === 'jerry';
+    return !!(slots[0] && slots[0].id === 'jerry');
+  }
+
+  function jerryFull() {
+    return hasJerry() && !!slots[0].full;
   }
 
   function giveJerry() {
     if (hasJerry()) return false;
-    slots[0] = 'jerry';
+    slots[0] = { id: 'jerry', full: false };
+    equipped = 0;
     drawHud();
     return true;
   }
 
   function canPourHere() {
-    if (!hasJerry() || equipped !== 1 || gas >= 100) return false;
+    if (!jerryFull() || equipped !== 1 || gas >= 100) return false;
     if (drive.on) return true;
     if (!drive.parked) return false;
     return Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y) < 26;
+  }
+
+  function pumpText() {
+    if (!hasJerry()) return 'Ask Mira for a jerry can';
+    if (jerryFull()) return 'Can is full';
+    return 'Pump · Fill jerry can';
+  }
+
+  function pourReady() {
+    if (!hasJerry() || gas >= 100) return null;
+    if (!jerryFull()) return { kind: 'needpump', text: 'Fill the can at a pump' };
+    if (equipped === 1) return { kind: 'pour', text: 'Pour jerry can' };
+    return { kind: 'need1', text: 'Press 1 · Equip jerry can' };
   }
 
   function equipSlot(n) {
@@ -1010,12 +1029,14 @@
   }
 
   function usePump() {
-    if (!giveJerry()) {
+    if (!hasJerry() || jerryFull()) {
       interactLock = true;
       actEdge = false;
       beep(140, 0.08, 0.04);
       return;
     }
+    slots[0].full = true;
+    drawHud();
     interactLock = true;
     actEdge = false;
     beep(500, 0.1, 0.05, 'square');
@@ -1073,12 +1094,12 @@
   }
 
   function pourCan() {
-    if (!hasJerry() || equipped !== 1 || gas >= 100) {
+    if (!jerryFull() || equipped !== 1 || gas >= 100) {
       interactLock = true;
       actEdge = false;
       return;
     }
-    slots[0] = null;
+    slots[0].full = false;
     equipped = 0;
     gas = 100;
     save();
@@ -1089,15 +1110,19 @@
   }
 
   function rentCar() {
-    if (gas <= 0) {
-      if (hasJerry() && equipped === 1) pourCan();
-      else {
-        interactLock = true;
-        actEdge = false;
-        beep(140, 0.08, 0.04);
-        return;
-      }
+    if (!hasJerry()) {
+      interactLock = true;
+      actEdge = false;
+      beep(140, 0.08, 0.04);
+      return;
     }
+    if (gas <= 0 && drive.parked) {
+      interactLock = true;
+      actEdge = false;
+      beep(140, 0.08, 0.04);
+      return;
+    }
+    gas = 100;
     var pad = nearestRoad(player.x, player.y);
     drive.on = true;
     drive.parked = false;
@@ -1125,8 +1150,8 @@
 
   function boardCar() {
     if (gas <= 0) {
-      if (hasJerry() && equipped === 1) pourCan();
-      else {
+      if (jerryFull() && equipped === 1) pourCan();
+      if (gas <= 0) {
         interactLock = true;
         actEdge = false;
         beep(140, 0.08, 0.04);
@@ -1143,6 +1168,12 @@
   }
 
   function returnCar() {
+    if (gas <= 0) {
+      interactLock = true;
+      actEdge = false;
+      beep(140, 0.08, 0.04);
+      return;
+    }
     if (drive.on) parkCar();
     drive.on = false;
     drive.parked = false;
@@ -1559,22 +1590,24 @@
     var i, e, d;
     if (drive.on) {
       near = { kind: 'park', text: 'Park · Hop out' };
-      if (hasJerry() && gas < 100) {
-        near = equipped === 1
-          ? { kind: 'pour', text: 'Pour jerry can' }
-          : { kind: 'need1', text: 'Press 1 · Equip jerry can' };
-      }
+      if (pourReady()) near = pourReady();
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
         if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 28) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
+        if (d < 28) {
+          near = gas <= 0
+            ? { kind: 'return', e: e, text: 'No gas · Cannot return' }
+            : { kind: 'return', e: e, text: 'Return car · ' + e.name };
+        }
       }
-      if (hasJerry() && gas < 100) {
-        near = equipped === 1
-          ? { kind: 'pour', text: 'Pour jerry can' }
-          : { kind: 'need1', text: 'Press 1 · Equip jerry can' };
+      for (i = 0; i < pumps.length; i++) {
+        e = pumps[i];
+        if (e.place !== place) continue;
+        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+        if (d < 26) near = { kind: 'pump', e: e, text: pumpText() };
       }
+      if (pourReady() && jerryFull()) near = pourReady();
       for (i = 0; i < pieces.length; i++) {
         e = pieces[i];
         if (e.got || e.place !== place) continue;
@@ -1614,28 +1647,30 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
       }
-      for (i = 0; i < cans.length; i++) {
-        e = cans[i];
-        if (e.place !== place || e.gone > 0) continue;
+      for (i = 0; i < pumps.length; i++) {
+        e = pumps[i];
+        if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 20) near = { kind: 'can', e: e, text: hasJerry() ? 'Slot 1 full' : 'Pick up · Slot 1' };
+        if (d < 20) near = { kind: 'pump', e: e, text: pumpText() };
       }
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
         if (e.place !== place) continue;
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 22) {
-          if (drive.parked) near = { kind: 'return', e: e, text: 'Return car · ' + e.name };
-          else if (gas <= 0 && !hasJerry()) near = { kind: 'rent', e: e, text: 'Ask Mira for a jerry can' };
+          if (drive.parked) {
+            near = gas <= 0
+              ? { kind: 'return', e: e, text: 'No gas · Cannot return' }
+              : { kind: 'return', e: e, text: 'Return car · ' + e.name };
+          } else if (!hasJerry()) near = { kind: 'rent', e: e, text: 'Ask Mira for a jerry can' };
           else near = { kind: 'rent', e: e, text: 'Rent a car · ' + e.name };
         }
       }
       if (drive.parked) {
         d = Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y);
         if (d < 22) {
-          if (hasJerry() && gas < 100 && equipped === 1) near = { kind: 'pour', text: 'Pour jerry can' };
-          else if (hasJerry() && gas < 100) near = { kind: 'need1', text: 'Press 1 · Equip jerry can' };
-          else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Talk to Mira' };
+          if (pourReady()) near = pourReady();
+          else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Fill the can at a pump' };
           else near = { kind: 'board', text: 'Get in' };
         }
       }
@@ -1646,8 +1681,8 @@
         if (d < 22) near = { kind: 'piece', e: e, text: 'Pick up · Blueprint piece' };
       }
     }
-    if (!near && drive.parked && gas <= 0 && !hasJerry()) {
-      ui.prompt.textContent = 'No gas · Talk to Mira';
+    if (!near && drive.parked && gas <= 0) {
+      ui.prompt.textContent = hasJerry() ? 'No gas · Fill the can at a pump' : 'No gas · Talk to Mira';
       show(ui.prompt, true);
     } else if (!near && energy <= 0 && !drive.on) {
       ui.prompt.textContent = 'No energy · Find a shop';

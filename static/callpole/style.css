@@ -331,6 +331,14 @@ button {
 }
 
 .slot.has .slot-can { display: block; }
+.slot.has:not(.full) .slot-can {
+  background: #6a3a32;
+  box-shadow: none;
+}
+.slot.full .slot-can {
+  background: #d94a32;
+  box-shadow: inset 0 -0.35rem 0 #f5c542;
+}
 .slot.equip {
   background: #ffe08a;
   box-shadow: 0 0 0 3px #d94a32;
