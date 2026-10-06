@@ -1004,7 +1004,6 @@
   }
 
   function pumpText() {
-    if (!hasJerry()) return 'Ask Mira for a jerry can';
     if (jerryFull()) return 'Can is full';
     return 'Pump · Fill jerry can';
   }
@@ -1029,7 +1028,7 @@
   }
 
   function usePump() {
-    if (!hasJerry() || jerryFull()) {
+    if (equipped !== 1 || !hasJerry() || jerryFull()) {
       interactLock = true;
       actEdge = false;
       beep(140, 0.08, 0.04);
@@ -1606,11 +1605,13 @@
             : { kind: 'return', e: e, text: 'Return car · ' + e.name };
         }
       }
-      for (i = 0; i < pumps.length; i++) {
-        e = pumps[i];
-        if (e.place !== place) continue;
-        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 26) near = { kind: 'pump', e: e, text: pumpText() };
+      if (equipped === 1 && hasJerry()) {
+        for (i = 0; i < pumps.length; i++) {
+          e = pumps[i];
+          if (e.place !== place) continue;
+          d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+          if (d < 26) near = { kind: 'pump', e: e, text: pumpText() };
+        }
       }
       if (pourReady() && jerryFull()) near = pourReady();
       for (i = 0; i < pieces.length; i++) {
@@ -1652,11 +1653,13 @@
         d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
         if (d < 20) near = { kind: 'shop', e: e, text: energy >= 100 ? 'Shop · Energy full' : 'Snack · Fill energy' };
       }
-      for (i = 0; i < pumps.length; i++) {
-        e = pumps[i];
-        if (e.place !== place) continue;
-        d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
-        if (d < 20) near = { kind: 'pump', e: e, text: pumpText() };
+      if (equipped === 1 && hasJerry()) {
+        for (i = 0; i < pumps.length; i++) {
+          e = pumps[i];
+          if (e.place !== place) continue;
+          d = Math.abs(player.x - e.x) + Math.abs(player.y - e.y);
+          if (d < 20) near = { kind: 'pump', e: e, text: pumpText() };
+        }
       }
       for (i = 0; i < rentals.length; i++) {
         e = rentals[i];
