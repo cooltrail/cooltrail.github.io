@@ -3,7 +3,7 @@ title = 'Blockplate'
 date = '2026-10-07T15:00:00-07:00'
 draft = false
 author = '@blue749rabbit'
-description = 'You are a tall thin block driving a car on a racetrack.'
+description = 'Drive a car on the racetrack. Space steps out of the car.'
 tags = ['game', 'blockplate']
 categories = ['games']
 +++
@@ -12,9 +12,9 @@ categories = ['games']
 
 <iframe class="isle-frame" src="/blockplate/" title="Blockplate" allow="autoplay"></iframe>
 
-You are a **tall thin block** in the driver's seat. The world is one **large baseplate** with a **racetrack**. Other cars race the oval. Drive yours.
+You are a small block in the driver's seat. The world is one **large baseplate** with a **racetrack**. Other cars race the oval. Drive yours, or step out and walk.
 
-W or up for gas. S, down, or space to brake. A and D, or left and right, to steer. Drag to look around. On a phone, use the pad.
+W or up for gas. S or down to brake. A and D, or left and right, to steer. Space gets out, and gets back in when you are next to the car. Drag to look around. On a phone, use the pad.
 
 <style>
 .play-btn {
