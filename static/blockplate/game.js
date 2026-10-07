@@ -172,154 +172,328 @@ function checkerTexture(THREE) {
   return texture;
 }
 
+function catmull(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 0.5 * (
+    2 * p1
+    + (-p0 + p2) * t
+    + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2
+    + (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+  );
+}
+
+function sampleStations(keys, count, smooth) {
+  const z0 = keys[0].z;
+  const z1 = keys[keys.length - 1].z;
+  const fields = Object.keys(keys[0]).filter((key) => key !== "z");
+  const out = [];
+  for (let i = 0; i < count; i += 1) {
+    const z = z0 + ((z1 - z0) * i) / (count - 1);
+    let seg = 0;
+    while (seg < keys.length - 2 && z > keys[seg + 1].z) seg += 1;
+    const span = keys[seg + 1].z - keys[seg].z || 1;
+    const t = Math.min(1, Math.max(0, (z - keys[seg].z) / span));
+    const i0 = Math.max(0, seg - 1);
+    const i1 = seg;
+    const i2 = seg + 1;
+    const i3 = Math.min(keys.length - 1, seg + 2);
+    const st = { z };
+    for (const key of fields) {
+      const raw = smooth
+        ? catmull(keys[i0][key], keys[i1][key], keys[i2][key], keys[i3][key], t)
+        : keys[i1][key] + (keys[i2][key] - keys[i1][key]) * t;
+      const lo = Math.min(keys[i1][key], keys[i2][key]);
+      const hi = Math.max(keys[i1][key], keys[i2][key]);
+      const pad = (hi - lo) * 0.18 + 0.002;
+      st[key] = Math.min(hi + pad, Math.max(lo - pad, raw));
+    }
+    st.hw = Math.max(0.05, st.hw);
+    st.roof = Math.min(0.98, Math.max(0.16, st.roof));
+    st.box = Math.max(0.45, st.box);
+    if (st.ys < st.yb + 0.03) st.ys = st.yb + 0.03;
+    if (st.yt < st.ys) st.yt = st.ys;
+    out.push(st);
+  }
+  return out;
+}
+
+function crossSection(st, around, boxy) {
+  const pts = [];
+  const crown = st.crown || 0;
+  for (let i = 0; i < around; i += 1) {
+    const a = (i / around) * Math.PI * 2;
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    if (boxy) {
+      const p = Math.max(2.2, st.box);
+      const ax = Math.abs(ca);
+      const ay = Math.abs(sa);
+      const denom = (ax ** p + ay ** p) ** (1 / p) || 1;
+      const nx = ca / denom;
+      const ny = sa / denom;
+      const y = ny >= 0
+        ? st.ys + (st.yt - st.ys) * ny
+        : st.ys + (st.ys - st.yb) * ny;
+      const taper = ny >= 0
+        ? st.roof + (1 - st.roof) * (1 - Math.min(1, Math.abs(ny)))
+        : 0.86 + 0.14 * (1 - Math.min(1, Math.abs(ny)));
+      pts.push([nx * st.hw * taper, y]);
+      continue;
+    }
+    const yBase = sa >= 0
+      ? st.ys + (st.yt - st.ys) * Math.pow(sa, 0.78)
+      : st.ys + (st.yb - st.ys) * Math.pow(-sa, 0.88);
+    const shoulder = sa > 0
+      ? Math.pow(Math.abs(ca), 0.5) * Math.pow(sa, 0.22) * (1 - sa * sa)
+      : 0;
+    const lift = sa >= 0 ? Math.pow(sa, st.box) : 0;
+    const tuck = sa < 0 ? Math.pow(-sa, 1.15) : 0;
+    const w = st.hw * (1 - lift * (1 - st.roof) - tuck * 0.16);
+    pts.push([ca * Math.max(w, 0.04), yBase + crown * shoulder]);
+  }
+  return pts;
+}
+
+function loftMesh(THREE, keys, mat, opts = {}) {
+  const around = opts.around ?? 32;
+  const count = opts.slices ?? 40;
+  const stations = sampleStations(keys, count, opts.smooth !== false);
+  const positions = [];
+  const indices = [];
+  for (const st of stations) {
+    for (const [x, y] of crossSection(st, around, !!opts.boxy)) positions.push(x, y, st.z);
+  }
+  for (let s = 0; s < count - 1; s += 1) {
+    for (let i = 0; i < around; i += 1) {
+      const i2 = (i + 1) % around;
+      const a = s * around + i;
+      const b = s * around + i2;
+      const c = (s + 1) * around + i;
+      const d = (s + 1) * around + i2;
+      indices.push(a, b, d, a, d, c);
+    }
+  }
+  const rearCenter = positions.length / 3;
+  positions.push(0, stations[0].ys, stations[0].z);
+  const frontCenter = positions.length / 3;
+  positions.push(0, stations[count - 1].ys, stations[count - 1].z);
+  const front = (count - 1) * around;
+  for (let i = 0; i < around; i += 1) {
+    const i2 = (i + 1) % around;
+    indices.push(rearCenter, i2, i);
+    indices.push(frontCenter, front + i, front + i2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function glassSheet(THREE, parent, mat, o) {
+  const cols = o.cols ?? 14;
+  const rows = o.rows ?? 8;
+  const positions = [];
+  const indices = [];
+  const stride = cols + 1;
+  for (let r = 0; r <= rows; r += 1) {
+    const v = r / rows;
+    const y = o.y0 + (o.y1 - o.y0) * v;
+    const z = o.z0 + (o.z1 - o.z0) * v;
+    const hw = o.hw0 + (o.hw1 - o.hw0) * v;
+    for (let c = 0; c <= cols; c += 1) {
+      const u = c / cols;
+      const s = u * 2 - 1;
+      const bow = Math.sin(u * Math.PI) * (o.bow ?? 0.04) * (0.35 + 0.65 * Math.sin(v * Math.PI));
+      positions.push((o.x ?? 0) + s * hw, y + bow * (o.by ?? 0.15), z + bow);
+    }
+  }
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const a = r * stride + c;
+      const b = a + 1;
+      const d = a + stride;
+      const e = d + 1;
+      indices.push(a, b, d, b, e, d);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, mat);
+  parent.add(mesh);
+  return mesh;
+}
+
+function sideGlass(THREE, parent, mat, o) {
+  const cols = o.cols ?? 10;
+  const rows = o.rows ?? 6;
+  const sign = o.x >= 0 ? 1 : -1;
+  const positions = [];
+  const indices = [];
+  const stride = cols + 1;
+  for (let r = 0; r <= rows; r += 1) {
+    const v = r / rows;
+    const y = o.y0 + (o.y1 - o.y0) * v;
+    for (let c = 0; c <= cols; c += 1) {
+      const u = c / cols;
+      const z = o.z0 + (o.z1 - o.z0) * u;
+      const bow = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * (o.bow ?? 0.035);
+      positions.push(o.x + bow * sign, y, z);
+    }
+  }
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const a = r * stride + c;
+      const b = a + 1;
+      const d = a + stride;
+      const e = d + 1;
+      if (sign > 0) indices.push(a, d, b, b, d, e);
+      else indices.push(a, b, d, b, e, d);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, mat);
+  parent.add(mesh);
+  return mesh;
+}
+
+function put(THREE, parent, geo, mat, x, y, z) {
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  parent.add(mesh);
+  return mesh;
+}
+
+function roundLamp(THREE, parent, mats, x, y, z, r, nz) {
+  const lens = put(THREE, parent, new THREE.SphereGeometry(r, 18, 14), mats.lamp, x, y, z + nz * r * 0.2);
+  lens.scale.set(1, 1, 0.45);
+  const bezel = put(THREE, parent, new THREE.TorusGeometry(r * 1.05, r * 0.22, 8, 18), mats.chrome, x, y, z);
+  return lens;
+}
+
+function tailLamp(THREE, parent, mat, x, y, z, r) {
+  const lens = put(THREE, parent, new THREE.SphereGeometry(r, 16, 12), mat, x, y, z);
+  lens.scale.set(1.15, 0.72, 0.4);
+  return lens;
+}
+
+function mirror(THREE, parent, mat, x, y, z) {
+  const stalk = put(THREE, parent, new THREE.CylinderGeometry(0.018, 0.018, 0.14, 8), mat, x, y, z);
+  stalk.rotation.z = Math.PI / 2;
+  const head = put(THREE, parent, new THREE.SphereGeometry(0.055, 12, 10), mat, x + Math.sign(x || 1) * 0.1, y + 0.02, z + 0.02);
+  head.scale.set(1.5, 0.75, 0.65);
+}
+
+function windowPair(THREE, parent, glass, dark, spec) {
+  glassSheet(THREE, parent, dark, { ...spec, bow: (spec.bow ?? 0.04) * 0.35 });
+  glassSheet(THREE, parent, glass, spec);
+}
+
+function sideWindowPair(THREE, parent, glass, dark, spec) {
+  sideGlass(THREE, parent, dark, { ...spec, bow: 0.012 });
+  sideGlass(THREE, parent, glass, spec);
+}
+
+function wheelArch(THREE, parent, mat, x, y, z, radius) {
+  const arch = put(THREE, parent, new THREE.TorusGeometry(radius * 1.04, 0.045, 8, 18, Math.PI), mat, x, y, z);
+  arch.rotation.y = Math.PI / 2;
+  arch.castShadow = true;
+  return arch;
+}
+
+function lathe(THREE, points, segments) {
+  const geo = new THREE.LatheGeometry(points.map((p) => new THREE.Vector2(p[0], p[1])), segments);
+  geo.rotateZ(Math.PI / 2);
+  return geo;
+}
+
 function makeCar(THREE, color, kind = "911") {
+  const spec = CAR_SPECS[kind] || CAR_SPECS["911"];
   const group = new THREE.Group();
   const chassis = new THREE.Group();
   group.add(chassis);
-  const paint = plainMaterial(THREE, color);
-  const dark = plainMaterial(THREE, 0x243044);
-  const glassMat = plainMaterial(THREE, 0xb7e4f8);
-  const lampMat = plainMaterial(THREE, 0xfff6d0);
-  const chrome = plainMaterial(THREE, 0xd5d8dc);
-  const roof = plainMaterial(THREE, 0xf7f4ee);
-
-  function part(w, h, d, mat, x, y, z) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    mesh.position.set(x, y, z);
-    mesh.castShadow = true;
-    chassis.add(mesh);
-    return mesh;
+  const paint = carPaint(THREE, color, spec.paint);
+  const dark = carPaint(THREE, 0x1a1e24, { roughness: 0.55, metalness: 0.08 });
+  const glass = new THREE.MeshStandardMaterial({
+    color: 0x9ecfe4,
+    roughness: 0.04,
+    metalness: 0.08,
+    transparent: true,
+    opacity: 0.62,
+    depthWrite: false,
+  });
+  const lamp = new THREE.MeshStandardMaterial({
+    color: 0xfff6d2,
+    emissive: 0xffeab0,
+    emissiveIntensity: 0.75,
+    roughness: 0.18,
+  });
+  const tail = new THREE.MeshStandardMaterial({
+    color: 0xc3251c,
+    emissive: 0x8d140e,
+    emissiveIntensity: 0.5,
+    roughness: 0.32,
+  });
+  const chrome = carPaint(THREE, 0xd5dbe3, { roughness: 0.16, metalness: 0.82 });
+  const rubber = carPaint(THREE, 0x1b1b1b, { roughness: 0.72, metalness: 0.02 });
+  const rim = carPaint(THREE, 0xb7bec6, { roughness: 0.28, metalness: 0.7 });
+  const mats = { paint, dark, glass, lamp, tail, chrome, rubber, rim, THREE };
+  for (const shell of spec.shells) {
+    chassis.add(loftMesh(THREE, shell.keys, shell.mat === "roof" ? carPaint(THREE, 0xf7f4ee, { roughness: 0.4, metalness: 0.08 }) : paint, shell.loft));
   }
+  spec.dress(chassis, mats);
 
-  let radius = 0.28;
-  let halfTrack = 0.74;
-  let axle = 1.0;
-  let tireWidth = 0.18;
-
-  if (kind === "jeep") {
-    radius = 0.38;
-    halfTrack = 0.86;
-    axle = 1.05;
-    tireWidth = 0.26;
-    part(1.5, 0.42, 2.7, paint, 0, 0.78, 0);
-    part(1.35, 0.12, 1.0, paint, 0, 1.0, 0.8);
-    const shield = part(1.28, 0.5, 0.06, glassMat, 0, 1.28, 0.42);
-    shield.rotation.x = -0.25;
-    part(0.08, 0.55, 0.08, dark, 0.62, 1.15, -0.15);
-    part(0.08, 0.55, 0.08, dark, -0.62, 1.15, -0.15);
-    part(1.2, 0.06, 0.08, dark, 0, 1.4, -0.15);
-    part(0.7, 0.32, 0.06, dark, 0, 0.78, 1.38);
-    part(1.55, 0.1, 0.1, chrome, 0, 0.58, 1.38);
-    const spareGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.12, 12);
-    spareGeo.rotateX(Math.PI / 2);
-    const spare = new THREE.Mesh(spareGeo, plainMaterial(THREE, 0x1b1b1b));
-    spare.position.set(0, 1.0, -1.42);
-    spare.castShadow = true;
-    chassis.add(spare);
-  } else if (kind === "bus") {
-    radius = 0.3;
-    halfTrack = 0.8;
-    axle = 1.25;
-    part(1.7, 1.15, 3.3, paint, 0, 1.05, -0.05);
-    part(1.55, 0.22, 3.05, roof, 0, 1.68, -0.05);
-    part(0.55, 0.42, 0.06, glassMat, -0.38, 1.22, 1.64);
-    part(0.55, 0.42, 0.06, glassMat, 0.38, 1.22, 1.64);
-    const noseL = part(0.12, 0.7, 0.85, paint, -0.5, 0.85, 1.45);
-    noseL.rotation.y = 0.5;
-    const noseR = part(0.12, 0.7, 0.85, paint, 0.5, 0.85, 1.45);
-    noseR.rotation.y = -0.5;
-    part(0.16, 0.16, 0.08, lampMat, -0.55, 0.62, 1.62);
-    part(0.16, 0.16, 0.08, lampMat, 0.55, 0.62, 1.62);
-  } else if (kind === "beetle") {
-    radius = 0.26;
-    halfTrack = 0.72;
-    axle = 0.82;
-    part(1.35, 0.36, 2.45, paint, 0, 0.5, 0);
-    part(0.28, 0.28, 2.2, paint, 0.72, 0.48, 0);
-    part(0.28, 0.28, 2.2, paint, -0.72, 0.48, 0);
-    part(1.15, 0.42, 1.45, paint, 0, 0.82, -0.05);
-    part(0.9, 0.16, 1.05, paint, 0, 1.08, -0.05);
-    part(1.05, 0.28, 0.4, glassMat, 0, 0.9, 0.62);
-    const lampGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.08, 8);
-    lampGeo.rotateX(Math.PI / 2);
-    for (const x of [-0.38, 0.38]) {
-      const lamp = new THREE.Mesh(lampGeo, lampMat);
-      lamp.position.set(x, 0.58, 1.22);
-      chassis.add(lamp);
-    }
-  } else if (kind === "wedge") {
-    radius = 0.26;
-    halfTrack = 0.9;
-    axle = 1.12;
-    tireWidth = 0.24;
-    part(1.9, 0.2, 3.7, paint, 0, 0.38, 0);
-    const nose = part(1.55, 0.14, 1.15, paint, 0, 0.34, 1.35);
-    nose.rotation.x = 0.22;
-    part(1.15, 0.26, 0.85, dark, 0, 0.58, 0.2);
-    const wind = part(1.05, 0.22, 0.45, glassMat, 0, 0.58, 0.62);
-    wind.rotation.x = -0.7;
-    for (let i = 0; i < 4; i += 1) part(1.25, 0.025, 0.07, dark, 0, 0.5, -0.85 - i * 0.16);
-  } else if (kind === "f150") {
-    radius = 0.36;
-    halfTrack = 0.82;
-    axle = 1.2;
-    tireWidth = 0.26;
-    part(1.65, 0.32, 2.15, paint, 0, 0.72, -0.75);
-    part(1.55, 0.1, 2.0, dark, 0, 0.92, -0.75);
-    part(1.55, 0.68, 1.3, paint, 0, 1.15, 0.95);
-    part(1.35, 0.32, 0.06, glassMat, 0, 1.28, 1.58);
-    part(1.2, 0.32, 0.06, dark, 0, 0.78, 1.72);
-    part(1.7, 0.1, 0.12, chrome, 0, 0.55, 1.75);
-  } else if (kind === "cyber") {
-    radius = 0.34;
-    halfTrack = 0.9;
-    axle = 1.2;
-    tireWidth = 0.22;
-    const steel = plainMaterial(THREE, color);
-    part(1.9, 0.28, 3.8, steel, 0, 0.55, 0);
-    const sail = part(1.75, 0.7, 1.7, steel, 0, 0.95, -0.7);
-    sail.rotation.x = 0.15;
-    const visor = part(1.7, 0.55, 1.35, glassMat, 0, 0.9, 0.55);
-    visor.rotation.x = -0.55;
-    part(1.85, 0.08, 0.08, dark, 0, 0.62, 1.9);
-  } else {
-    radius = 0.27;
-    halfTrack = 0.8;
-    axle = 1.02;
-    tireWidth = 0.22;
-    part(1.65, 0.28, 3.45, paint, 0, 0.44, 0);
-    part(0.32, 0.18, 1.5, paint, 0.78, 0.62, -0.55);
-    part(0.32, 0.18, 1.5, paint, -0.78, 0.62, -0.55);
-    part(1.15, 0.3, 1.15, paint, 0, 0.68, -0.2);
-    const wind = part(1.08, 0.22, 0.42, glassMat, 0, 0.72, 0.38);
-    wind.rotation.x = -0.65;
-    part(1.4, 0.08, 0.14, paint, 0, 0.7, -1.62);
-    const lampGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.08, 8);
-    lampGeo.rotateX(Math.PI / 2);
-    for (const x of [-0.48, 0.48]) {
-      const lamp = new THREE.Mesh(lampGeo, lampMat);
-      lamp.position.set(x, 0.5, 1.7);
-      chassis.add(lamp);
-    }
-  }
-
-  const wheelGeo = new THREE.CylinderGeometry(radius, radius, tireWidth, 14);
-  wheelGeo.rotateZ(Math.PI / 2);
-  const capGeo = new THREE.CylinderGeometry(radius * 0.42, radius * 0.42, tireWidth + 0.04, 10);
-  capGeo.rotateZ(Math.PI / 2);
-  const wheelMat = plainMaterial(THREE, 0x1b1b1b);
-  const capMat = plainMaterial(THREE, 0x9aa0a6);
+  const { radius, halfTrack, axle, tireWidth } = spec;
+  const tireGeo = lathe(THREE, [
+    [radius * 0.74, -tireWidth * 0.5],
+    [radius * 0.9, -tireWidth * 0.4],
+    [radius, -tireWidth * 0.16],
+    [radius, tireWidth * 0.16],
+    [radius * 0.9, tireWidth * 0.4],
+    [radius * 0.74, tireWidth * 0.5],
+  ], 36);
+  const rimGeo = lathe(THREE, [
+    [radius * 0.16, -tireWidth * 0.08],
+    [radius * 0.58, -tireWidth * 0.1],
+    [radius * 0.68, 0],
+    [radius * 0.46, tireWidth * 0.16],
+    [radius * 0.16, tireWidth * 0.2],
+  ], 32);
+  const hubGeo = new THREE.CylinderGeometry(radius * 0.16, radius * 0.16, tireWidth * 0.22, 16);
+  hubGeo.rotateZ(Math.PI / 2);
+  const spokeGeo = new THREE.BoxGeometry(tireWidth * 0.22, radius * 0.46, 0.028);
   const wheels = [];
+  const spokes = spec.spokes ?? 5;
   for (const [x, z, front] of [[halfTrack, axle, true], [-halfTrack, axle, true], [halfTrack, -axle, false], [-halfTrack, -axle, false]]) {
     const steer = new THREE.Group();
     steer.position.set(x, radius, z);
     const strut = new THREE.Group();
     const spin = new THREE.Group();
-    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-    wheel.castShadow = true;
-    const cap = new THREE.Mesh(capGeo, capMat);
-    spin.add(wheel);
-    spin.add(cap);
+    const tire = new THREE.Mesh(tireGeo, rubber);
+    tire.castShadow = true;
+    spin.add(tire);
+    const rimMesh = new THREE.Mesh(rimGeo, rim);
+    spin.add(rimMesh);
+    const hub = new THREE.Mesh(hubGeo, rim);
+    hub.position.x = tireWidth * 0.12;
+    spin.add(hub);
+    for (let i = 0; i < spokes; i += 1) {
+      const pivot = new THREE.Group();
+      pivot.rotation.x = (i / spokes) * Math.PI * 2;
+      const spoke = new THREE.Mesh(spokeGeo, rim);
+      spoke.position.y = radius * 0.34;
+      pivot.add(spoke);
+      spin.add(pivot);
+    }
     strut.add(spin);
     steer.add(strut);
     group.add(steer);
@@ -330,11 +504,332 @@ function makeCar(THREE, color, kind = "911") {
   return group;
 }
 
+const S = (z, hw, yb, ys, yt, roof, box, crown = 0) => ({ z, hw, yb, ys, yt, roof, box, crown });
+
+const CAR_SPECS = {
+  "911": {
+    radius: 0.27,
+    halfTrack: 0.86,
+    axle: 1.05,
+    tireWidth: 0.24,
+    spokes: 5,
+    shells: [{
+      keys: [
+        S(-1.8, 0.74, 0.3, 0.44, 0.5, 0.9, 1.55, 0.05),
+        S(-1.55, 0.96, 0.27, 0.48, 0.56, 0.7, 1.35, 0.16),
+        S(-1.18, 1.04, 0.26, 0.52, 0.58, 0.48, 1.25, 0.22),
+        S(-0.75, 0.84, 0.26, 0.55, 0.92, 0.44, 1.5, 0.04),
+        S(-0.25, 0.74, 0.27, 0.58, 1.04, 0.4, 1.6, 0),
+        S(0.22, 0.74, 0.27, 0.5, 0.72, 0.55, 1.4, 0.02),
+        S(0.7, 0.78, 0.26, 0.44, 0.48, 0.72, 1.25, 0.08),
+        S(1.15, 0.9, 0.26, 0.4, 0.44, 0.62, 1.2, 0.18),
+        S(1.55, 0.66, 0.29, 0.4, 0.42, 0.85, 1.45, 0.06),
+        S(1.76, 0.42, 0.32, 0.38, 0.4, 0.92, 1.8, 0),
+      ],
+    }],
+    dress(chassis, m) {
+      windowPair(m.THREE, chassis, m.glass, m.dark, { y0: 0.52, z0: 0.62, y1: 0.98, z1: -0.02, hw0: 0.56, hw1: 0.34, bow: 0.08, rows: 8, cols: 16 });
+      glassSheet(m.THREE, chassis, m.dark, { y0: 0.78, z0: -0.18, y1: 0.58, z1: -1.05, hw0: 0.38, hw1: 0.52, bow: 0.02, rows: 6, cols: 12 });
+      glassSheet(m.THREE, chassis, m.glass, { y0: 0.8, z0: -0.16, y1: 0.6, z1: -1.08, hw0: 0.36, hw1: 0.5, bow: 0.05, rows: 6, cols: 12 });
+      for (const x of [0.76, -0.76]) {
+        sideWindowPair(m.THREE, chassis, m.glass, m.dark, { x, y0: 0.58, z0: 0.12, y1: 0.92, z1: -0.28, bow: 0.035, rows: 6, cols: 10 });
+        const frontDoor = put(m.THREE, chassis, new m.THREE.BoxGeometry(0.015, 0.32, 0.018), m.dark, x, 0.52, 0.28);
+        frontDoor.castShadow = false;
+        const rearDoor = put(m.THREE, chassis, new m.THREE.BoxGeometry(0.015, 0.28, 0.018), m.dark, x, 0.5, -0.42);
+        rearDoor.castShadow = false;
+      }
+      for (const x of [-0.5, 0.5]) roundLamp(m.THREE, chassis, m, x, 0.5, 1.58, 0.1, 1);
+      const shut = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.15, 0.012, 0.02), m.dark, 0, 0.5, 0.78);
+      shut.castShadow = false;
+      const bar = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.42, 0.07, 0.045, 12, 1, 1), m.tail, 0, 0.48, -1.76);
+      bar.castShadow = false;
+      for (const x of [-0.66, 0.66]) tailLamp(m.THREE, chassis, m.tail, x, 0.48, -1.74, 0.08);
+      const lip = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.55, 0.05, 0.34, 12, 1, 3), m.paint, 0, 0.68, -1.66);
+      lip.rotation.x = -0.22;
+      lip.castShadow = true;
+      for (const x of [-0.78, 0.78]) mirror(m.THREE, chassis, m.chrome, x, 0.7, 0.22);
+      for (const x of [-0.22, 0.22]) {
+        const pipe = put(m.THREE, chassis, new m.THREE.CylinderGeometry(0.035, 0.04, 0.12, 12), m.chrome, x, 0.32, -1.78);
+        pipe.rotation.x = Math.PI / 2;
+      }
+      const skirt = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.35, 0.06, 1.7), m.dark, 0, 0.28, -0.1);
+      skirt.castShadow = true;
+    },
+  },
+  jeep: {
+    radius: 0.38,
+    halfTrack: 0.9,
+    axle: 1.02,
+    tireWidth: 0.28,
+    spokes: 5,
+    shells: [{
+      loft: { around: 28, slices: 32, boxy: true },
+      keys: [
+        S(-1.45, 0.62, 0.55, 0.78, 1.02, 0.9, 7),
+        S(-0.7, 0.78, 0.52, 0.86, 1.12, 0.88, 8),
+        S(0.15, 0.8, 0.52, 0.88, 1.16, 0.88, 8),
+        S(0.85, 0.76, 0.5, 0.8, 0.92, 0.92, 6),
+        S(1.35, 0.7, 0.48, 0.66, 0.7, 0.94, 5),
+      ],
+    }],
+    dress(chassis, m) {
+      const hood = loftMesh(m.THREE, [
+        S(0.55, 0.7, 0.62, 0.78, 0.84, 0.9, 3),
+        S(1.15, 0.68, 0.58, 0.7, 0.74, 0.94, 2.6),
+        S(1.48, 0.6, 0.55, 0.64, 0.66, 0.96, 2.4),
+      ], m.paint, { around: 20, slices: 16, boxy: true });
+      chassis.add(hood);
+      glassSheet(m.THREE, chassis, m.dark, { y0: 0.78, z0: 0.72, y1: 1.28, z1: 0.5, hw0: 0.62, hw1: 0.58, bow: 0.012, rows: 6, cols: 10 });
+      glassSheet(m.THREE, chassis, m.glass, { y0: 0.8, z0: 0.74, y1: 1.32, z1: 0.52, hw0: 0.6, hw1: 0.56, bow: 0.02, rows: 8, cols: 12 });
+      const barPath = new m.THREE.CatmullRomCurve3([
+        new m.THREE.Vector3(-0.62, 1.05, -0.15),
+        new m.THREE.Vector3(-0.62, 1.58, -0.15),
+        new m.THREE.Vector3(0, 1.62, -0.15),
+        new m.THREE.Vector3(0.62, 1.58, -0.15),
+        new m.THREE.Vector3(0.62, 1.05, -0.15),
+      ]);
+      const cage = new m.THREE.Mesh(new m.THREE.TubeGeometry(barPath, 28, 0.035, 8, false), m.dark);
+      cage.castShadow = true;
+      chassis.add(cage);
+      put(m.THREE, chassis, new m.THREE.BoxGeometry(0.66, 0.34, 0.04), m.dark, 0, 0.72, 1.5);
+      for (let i = 0; i < 7; i += 1) {
+        put(m.THREE, chassis, new m.THREE.BoxGeometry(0.035, 0.3, 0.03), m.paint, -0.24 + i * 0.08, 0.72, 1.53);
+      }
+      for (const x of [-0.42, 0.42]) roundLamp(m.THREE, chassis, m, x, 0.78, 1.46, 0.1, 1);
+      const spareTire = lathe(m.THREE, [
+        [0.22, -0.05], [0.3, -0.04], [0.34, 0], [0.3, 0.04], [0.22, 0.05],
+      ], 24);
+      const spare = put(m.THREE, chassis, spareTire, m.rubber, 0, 1.05, -1.48);
+      spare.rotation.y = Math.PI / 2;
+      spare.castShadow = true;
+      for (const x of [-0.86, 0.86]) {
+        wheelArch(m.THREE, chassis, m.paint, x, 0.38, 1.02, 0.38);
+        wheelArch(m.THREE, chassis, m.paint, x, 0.38, -1.02, 0.38);
+        mirror(m.THREE, chassis, m.chrome, x, 1.05, 0.45);
+      }
+      const bumper = put(m.THREE, chassis, new m.THREE.CapsuleGeometry(0.06, 1.15, 6, 12), m.chrome, 0, 0.58, 1.52);
+      bumper.rotation.z = Math.PI / 2;
+    },
+  },
+  bus: {
+    radius: 0.32,
+    halfTrack: 0.82,
+    axle: 1.28,
+    tireWidth: 0.22,
+    spokes: 6,
+    shells: [
+      {
+        loft: { around: 24, slices: 34, boxy: true },
+        keys: [
+          S(-1.72, 0.55, 0.48, 0.9, 1.48, 0.94, 8),
+          S(-1.2, 0.84, 0.42, 1.05, 1.58, 0.92, 9),
+          S(0, 0.86, 0.42, 1.08, 1.62, 0.92, 9),
+          S(1.15, 0.84, 0.42, 1.02, 1.5, 0.94, 8),
+          S(1.55, 0.62, 0.46, 0.85, 1.15, 0.94, 5),
+          S(1.78, 0.28, 0.5, 0.7, 0.82, 0.9, 3.2),
+        ],
+      },
+      {
+        mat: "roof",
+        loft: { around: 20, slices: 24, boxy: true },
+        keys: [
+          S(-1.45, 0.7, 1.42, 1.55, 1.72, 0.9, 3.2),
+          S(0.2, 0.74, 1.45, 1.58, 1.76, 0.88, 3.4),
+          S(1.35, 0.58, 1.35, 1.48, 1.6, 0.9, 2.8),
+        ],
+      },
+    ],
+    dress(chassis, m) {
+      windowPair(m.THREE, chassis, m.glass, m.dark, { x: -0.34, y0: 1.05, z0: 1.58, y1: 1.48, z1: 1.42, hw0: 0.28, hw1: 0.26, bow: 0.03, rows: 6, cols: 6 });
+      windowPair(m.THREE, chassis, m.glass, m.dark, { x: 0.34, y0: 1.05, z0: 1.58, y1: 1.48, z1: 1.42, hw0: 0.28, hw1: 0.26, bow: 0.03, rows: 6, cols: 6 });
+      for (const x of [-0.9, 0.9]) {
+        for (const z of [-1.05, -0.45, 0.15, 0.75]) {
+          sideWindowPair(m.THREE, chassis, m.glass, m.dark, { x, y0: 1.05, y1: 1.42, z0: z - 0.18, z1: z + 0.18, bow: 0.025, rows: 4, cols: 4 });
+        }
+        mirror(m.THREE, chassis, m.chrome, x, 1.15, 1.15);
+      }
+      for (const x of [-0.48, 0.48]) roundLamp(m.THREE, chassis, m, x, 0.7, 1.7, 0.09, 1);
+      const bumper = put(m.THREE, chassis, new m.THREE.CapsuleGeometry(0.07, 1.2, 6, 12), m.chrome, 0, 0.52, 1.72);
+      bumper.rotation.z = Math.PI / 2;
+      const rear = put(m.THREE, chassis, new m.THREE.CapsuleGeometry(0.06, 1.15, 4, 10), m.chrome, 0, 0.55, -1.74);
+      rear.rotation.z = Math.PI / 2;
+    },
+  },
+  beetle: {
+    radius: 0.26,
+    halfTrack: 0.7,
+    axle: 0.78,
+    tireWidth: 0.18,
+    spokes: 5,
+    shells: [{
+      loft: { around: 30, slices: 36 },
+      keys: [
+        S(-1.2, 0.28, 0.4, 0.48, 0.54, 0.75, 1.4),
+        S(-0.72, 0.5, 0.32, 0.54, 0.82, 0.62, 1.05),
+        S(-0.15, 0.52, 0.32, 0.58, 0.98, 0.58, 0.95),
+        S(0.3, 0.52, 0.32, 0.56, 0.92, 0.6, 0.95),
+        S(0.75, 0.46, 0.34, 0.5, 0.66, 0.7, 1.15),
+        S(1.18, 0.26, 0.4, 0.46, 0.5, 0.8, 1.5),
+      ],
+    }],
+    dress(chassis, m) {
+      const blister = new m.THREE.SphereGeometry(1, 22, 16);
+      for (const z of [-0.62, 0.68]) {
+        for (const x of [-0.58, 0.58]) {
+          const fender = put(m.THREE, chassis, blister, m.paint, x, 0.46, z);
+          fender.scale.set(0.26, 0.18, 0.46);
+          fender.castShadow = true;
+        }
+      }
+      for (const x of [-0.52, 0.52]) {
+        const board = put(m.THREE, chassis, new m.THREE.BoxGeometry(0.08, 0.05, 0.7, 1, 1, 6), m.dark, x, 0.34, 0.05);
+        board.castShadow = true;
+      }
+      windowPair(m.THREE, chassis, m.glass, m.dark, { y0: 0.58, z0: 0.62, y1: 1.05, z1: 0.02, hw0: 0.42, hw1: 0.26, bow: 0.08, rows: 8, cols: 14 });
+      glassSheet(m.THREE, chassis, m.glass, { y0: 0.9, z0: -0.15, y1: 0.62, z1: -0.62, hw0: 0.3, hw1: 0.36, bow: 0.04, rows: 6, cols: 10 });
+      for (const x of [-0.42, 0.42]) {
+        roundLamp(m.THREE, chassis, m, x, 0.5, 1.05, 0.09, 1);
+        sideWindowPair(m.THREE, chassis, m.glass, m.dark, { x: x > 0 ? 0.5 : -0.5, y0: 0.68, y1: 0.98, z0: 0.15, z1: -0.2, bow: 0.03, rows: 5, cols: 6 });
+      }
+      for (const x of [-0.32, 0.32]) tailLamp(m.THREE, chassis, m.tail, x, 0.5, -1.12, 0.055);
+    },
+  },
+  wedge: {
+    radius: 0.26,
+    halfTrack: 0.92,
+    axle: 1.15,
+    tireWidth: 0.26,
+    spokes: 5,
+    shells: [{
+      loft: { around: 28, slices: 46, boxy: true },
+      keys: [
+        S(-1.9, 0.5, 0.24, 0.34, 0.4, 0.92, 6),
+        S(-1.25, 0.98, 0.2, 0.38, 0.48, 0.9, 7),
+        S(-0.35, 0.94, 0.2, 0.36, 0.52, 0.82, 6),
+        S(0.15, 0.82, 0.2, 0.34, 0.72, 0.55, 3.2),
+        S(0.6, 0.92, 0.2, 0.32, 0.4, 0.92, 6),
+        S(1.35, 0.8, 0.2, 0.28, 0.32, 0.96, 8),
+        S(1.9, 0.16, 0.22, 0.26, 0.28, 0.94, 4),
+      ],
+    }],
+    dress(chassis, m) {
+      windowPair(m.THREE, chassis, m.glass, m.dark, { y0: 0.36, z0: 0.48, y1: 0.66, z1: 0.12, hw0: 0.48, hw1: 0.28, bow: 0.03, rows: 6, cols: 12 });
+      for (let i = 0; i < 10; i += 1) {
+        const slat = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.2, 0.018, 0.07), m.dark, 0, 0.5, -0.45 - i * 0.12);
+        slat.rotation.x = 0.2;
+      }
+      const wing = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.65, 0.025, 0.32, 8, 1, 2), m.paint, 0, 0.78, -1.55);
+      wing.castShadow = true;
+      for (const x of [-0.55, 0.55]) {
+        const pillar = put(m.THREE, chassis, new m.THREE.CylinderGeometry(0.02, 0.02, 0.28, 8), m.dark, x, 0.64, -1.55);
+        pillar.castShadow = true;
+      }
+      for (const x of [-0.55, 0.55]) {
+        const pop = put(m.THREE, chassis, new m.THREE.BoxGeometry(0.22, 0.06, 0.1, 1, 1, 2), m.lamp, x, 0.34, 1.55);
+        pop.rotation.x = 0.4;
+      }
+      for (const x of [-0.7, 0.7]) tailLamp(m.THREE, chassis, m.tail, x, 0.36, -1.82, 0.05);
+      for (const x of [-0.95, 0.95]) mirror(m.THREE, chassis, m.chrome, x, 0.42, 0.35);
+    },
+  },
+  f150: {
+    radius: 0.36,
+    halfTrack: 0.86,
+    axle: 1.22,
+    tireWidth: 0.28,
+    spokes: 6,
+    shells: [
+      {
+        loft: { around: 24, slices: 28, boxy: true, smooth: false },
+        keys: [
+          S(-1.9, 0.72, 0.48, 0.7, 0.86, 0.94, 8),
+          S(-0.9, 0.84, 0.46, 0.74, 0.9, 0.94, 9),
+          S(0.2, 0.8, 0.48, 0.72, 0.84, 0.94, 8),
+        ],
+      },
+      {
+        loft: { around: 24, slices: 30, boxy: true, smooth: false },
+        keys: [
+          S(0.05, 0.8, 0.55, 0.95, 1.48, 0.9, 8),
+          S(0.75, 0.82, 0.52, 0.98, 1.5, 0.9, 9),
+          S(1.2, 0.8, 0.5, 0.82, 1.05, 0.94, 7),
+          S(1.75, 0.78, 0.46, 0.64, 0.68, 0.96, 6),
+          S(2.08, 0.68, 0.44, 0.56, 0.58, 0.98, 5),
+        ],
+      },
+    ],
+    dress(chassis, m) {
+      const bed = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.35, 0.12, 1.7, 1, 1, 4), m.dark, 0, 0.78, -0.85);
+      bed.receiveShadow = true;
+      windowPair(m.THREE, chassis, m.glass, m.dark, { y0: 1.02, z0: 1.22, y1: 1.42, z1: 0.78, hw0: 0.66, hw1: 0.58, bow: 0.025, rows: 6, cols: 12 });
+      for (const x of [-0.84, 0.84]) {
+        sideWindowPair(m.THREE, chassis, m.glass, m.dark, { x, y0: 1.05, y1: 1.38, z0: 1.0, z1: 0.35, bow: 0.03, rows: 5, cols: 8 });
+        mirror(m.THREE, chassis, m.chrome, x, 1.12, 1.05);
+        wheelArch(m.THREE, chassis, m.paint, x, 0.36, 1.22, 0.36);
+        wheelArch(m.THREE, chassis, m.paint, x, 0.36, -1.22, 0.36);
+      }
+      put(m.THREE, chassis, new m.THREE.BoxGeometry(0.9, 0.32, 0.04), m.dark, 0, 0.72, 2.02);
+      for (let i = 0; i < 5; i += 1) {
+        put(m.THREE, chassis, new m.THREE.BoxGeometry(0.04, 0.28, 0.025), m.chrome, -0.28 + i * 0.14, 0.72, 2.05);
+      }
+      for (const x of [-0.55, 0.55]) {
+        const lamp = put(m.THREE, chassis, new m.THREE.BoxGeometry(0.28, 0.12, 0.06, 2, 2, 1), m.lamp, x, 0.62, 2.02);
+        lamp.castShadow = false;
+      }
+      const bumper = put(m.THREE, chassis, new m.THREE.CapsuleGeometry(0.08, 1.35, 6, 14), m.chrome, 0, 0.5, 2.08);
+      bumper.rotation.z = Math.PI / 2;
+      for (const x of [-0.6, 0.6]) tailLamp(m.THREE, chassis, m.tail, x, 0.72, -1.88, 0.06);
+    },
+  },
+  cyber: {
+    radius: 0.34,
+    halfTrack: 0.92,
+    axle: 1.25,
+    tireWidth: 0.24,
+    spokes: 7,
+    paint: { roughness: 0.38, metalness: 0.55 },
+    shells: [{
+      loft: { around: 24, slices: 32, smooth: false, boxy: true },
+      keys: [
+        S(-1.95, 0.78, 0.4, 0.72, 1.22, 0.98, 12),
+        S(-1.15, 0.96, 0.36, 0.8, 1.35, 0.98, 14),
+        S(-0.15, 0.94, 0.34, 0.7, 0.98, 0.98, 12),
+        S(0.75, 0.9, 0.32, 0.58, 0.7, 0.99, 12),
+        S(1.5, 0.82, 0.32, 0.46, 0.5, 0.99, 10),
+        S(1.98, 0.28, 0.34, 0.4, 0.42, 0.99, 8),
+      ],
+    }],
+    dress(chassis, m) {
+      glassSheet(m.THREE, chassis, m.dark, { y0: 0.58, z0: 1.15, y1: 1.05, z1: 0.15, hw0: 0.78, hw1: 0.7, bow: 0.01, rows: 8, cols: 16 });
+      glassSheet(m.THREE, chassis, m.glass, { y0: 0.6, z0: 1.2, y1: 1.08, z1: 0.18, hw0: 0.76, hw1: 0.68, bow: 0.02, rows: 10, cols: 18 });
+      const bar = put(m.THREE, chassis, new m.THREE.BoxGeometry(1.25, 0.04, 0.04, 16, 1, 1), m.lamp, 0, 0.5, 1.48);
+      bar.castShadow = false;
+      for (const x of [-0.95, 0.95]) {
+        wheelArch(m.THREE, chassis, m.dark, x, 0.34, 1.25, 0.36);
+        wheelArch(m.THREE, chassis, m.dark, x, 0.34, -1.25, 0.36);
+      }
+      for (const z of [-0.4, 0.45]) {
+        put(m.THREE, chassis, new m.THREE.BoxGeometry(1.7, 0.012, 0.02), m.dark, 0, 0.62, z);
+      }
+      for (const x of [-0.7, 0.7]) tailLamp(m.THREE, chassis, m.tail, x, 0.62, -1.9, 0.05);
+    },
+  },
+};
+
 function plainMaterial(THREE, color) {
   return new THREE.MeshStandardMaterial({
     color,
     roughness: 0.7,
     metalness: 0.02,
+  });
+}
+
+function carPaint(THREE, color, opts = {}) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: opts.roughness ?? 0.32,
+    metalness: opts.metalness ?? 0.2,
+    flatShading: !!opts.flat,
   });
 }
 
