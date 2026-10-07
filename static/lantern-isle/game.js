@@ -12,6 +12,8 @@
   var MROWS = 32;
   var TCOLS = 360;
   var TROWS = 88;
+  var MON_W = 148;
+  var MON_H = 82;
   var CHAR_W = 10;
   var CHAR_H = 12;
   var SAVE = 'callpole-v3';
@@ -77,7 +79,9 @@
     dirt: '#8a6a48',
     hwy: '#232834',
     tree: '#2a4e24',
-    tarmac: '#5a624c'
+    tarmac: '#5a624c',
+    water: '#2a5a8a',
+    water2: '#244e78'
   };
 
   var keys = {};
@@ -92,9 +96,11 @@
   var cityMap = [];
   var mallMap = [];
   var trackMap = [];
+  var monacoMap = [];
   var cityBuildings = [];
   var mallBuildings = [];
   var trackBuildings = [];
+  var monacoBuildings = [];
   var place = 'city';
   var cityReturn = { x: 0, y: 0 };
   var worldReturn = { place: 'city', x: 0, y: 0 };
@@ -150,7 +156,7 @@
   }
 
   function solid(id) {
-    return id === 3 || id === 8;
+    return id === 3 || id === 8 || id === 13;
   }
 
   function blocked(x, y, w, h) {
@@ -180,15 +186,21 @@
     return m;
   }
 
+  function isTestPlace(p) {
+    return p === 'track' || p === 'monaco';
+  }
+
   function placeMap(p) {
     if (p === 'mall') return mallMap;
     if (p === 'track') return trackMap;
+    if (p === 'monaco') return monacoMap;
     return cityMap;
   }
 
   function placeBuildings(p) {
     if (p === 'mall') return mallBuildings;
     if (p === 'track') return trackBuildings;
+    if (p === 'monaco') return monacoBuildings;
     return cityBuildings;
   }
 
@@ -266,6 +278,7 @@
     mallMap = map;
     mallBuildings = buildings;
     buildTrack();
+    buildMonaco();
     usePlace('city');
   }
 
@@ -319,6 +332,55 @@
     }
     trackMap = map;
     trackBuildings = buildings;
+  }
+
+  function buildMonaco() {
+    var tw = 3;
+    var i;
+    map = allocMap(MON_W, MON_H);
+    buildings = [];
+    fill(0, 0, MON_W, MON_H, 7);
+    fill(60, 48, 88, 34, 13);
+    fill(0, 78, MON_W, 4, 13);
+    fill(18, 66, 42, tw, 9);
+    fill(57, 54, tw, 15, 9);
+    fill(48, 54, 12, tw, 9);
+    fill(48, 22, tw, 35, 9);
+    fill(48, 18, tw, 7, 9);
+    fill(22, 18, 29, tw, 9);
+    fill(22, 18, tw, 20, 9);
+    fill(22, 35, 64, tw, 9);
+    fill(83, 35, tw, 16, 9);
+    fill(72, 48, 14, tw, 9);
+    fill(72, 40, tw, 11, 9);
+    fill(72, 40, 48, tw, 9);
+    fill(117, 40, tw, 10, 9);
+    fill(117, 47, 16, tw, 9);
+    fill(130, 47, tw, 12, 9);
+    fill(112, 56, 21, tw, 9);
+    fill(112, 56, tw, 12, 9);
+    fill(112, 65, 22, tw, 9);
+    fill(131, 65, tw, 12, 9);
+    fill(16, 74, 118, tw, 9);
+    fill(16, 66, tw, 11, 9);
+    fill(24, 62, 28, 2, 1);
+    fill(24, 62, 2, 5, 1);
+    fill(50, 62, 2, 5, 1);
+    for (i = 0; i < 4; i++) fill(30 + i * 2, 66, 1, tw, i % 2 ? 5 : 6);
+    fill(117, 68, 12, 5, 13);
+    addBuilding(27, 5, 20, 11, '#d2c4a8');
+    addBuilding(8, 16, 12, 18, '#b8a090');
+    addBuilding(27, 23, 18, 10, '#c4b49a');
+    addBuilding(53, 24, 14, 28, '#a89888');
+    addBuilding(20, 56, 26, 5, '#b8a090');
+    addBuilding(36, 40, 10, 12, '#9a8a7a');
+    addBuilding(8, 40, 12, 22, '#8a8078');
+    addBuilding(90, 28, 24, 10, '#8a8a92');
+    addBuilding(20, 70, 28, 3, '#6a7080');
+    addBuilding(122, 36, 10, 8, '#c4b49a');
+    addBuilding(136, 52, 8, 10, '#a89888');
+    monacoMap = map;
+    monacoBuildings = buildings;
   }
 
   function bootEntities() {
@@ -986,7 +1048,7 @@
       pix(gx, gy, TILE, TILE, nuked ? '#161410' : C.hwy);
       tx = Math.floor(sx / TILE);
       ty = Math.floor(sy / TILE);
-      if (place === 'track') {
+      if (place === 'track' || place === 'monaco') {
         if (roadTile(tileAt(sx - TILE, sy + 8)) && roadTile(tileAt(sx + TILE + 8, sy + 8)) && tx % 2 === 0) {
           pix(gx + 1, gy + 7, TILE - 2, 2, C.line);
         } else if (roadTile(tileAt(sx + 8, sy - TILE)) && roadTile(tileAt(sx + 8, sy + TILE + 8)) && ty % 2 === 0) {
@@ -1014,6 +1076,7 @@
     } else if (id === 10) pix(gx, gy, TILE, TILE, C.dirt);
     else if (id === 11) pix(gx, gy, TILE, TILE, ((sx / TILE) % 2 === 0) ? C.field : '#b8a44c');
     else if (id === 12) pix(gx, gy, TILE, TILE, ((sx + sy) / TILE) % 2 === 0 ? C.tarmac : '#4e5642');
+    else if (id === 13) pix(gx, gy, TILE, TILE, nuked ? '#243040' : (((sx + sy) / TILE) % 2 === 0 ? C.water : C.water2));
     else pix(gx, gy, TILE, TILE, C.walk);
   }
 
@@ -1536,11 +1599,12 @@
     if (id === 10) return C.dirt;
     if (id === 11) return C.field;
     if (id === 12) return '#6a7a50';
+    if (id === 13) return C.water;
     return C.walk;
   }
 
   function drawMinimap() {
-    var src = place === 'track' ? trackMap : cityMap;
+    var src = place === 'track' ? trackMap : place === 'monaco' ? monacoMap : cityMap;
     var cols = src[0] ? src[0].length : COLS;
     var rows = src.length || ROWS;
     var mw = 64;
@@ -1610,6 +1674,9 @@
       pix(20 * TILE - cam.x, (MROWS - 1) * TILE - cam.y, 8 * TILE, TILE, '#555555');
       pix(0 - cam.x, 13 * TILE - cam.y, 4, 6 * TILE, '#555555');
       pix((MCOLS - 1) * TILE - cam.x, 13 * TILE - cam.y, TILE, 6 * TILE, '#555555');
+    } else if (place === 'monaco') {
+      pix(90 * TILE - cam.x, 39 * TILE - cam.y, 26 * TILE, 5 * TILE, nuked ? '#2a2420' : '#3a3a44');
+      pix(91 * TILE - cam.x, 40 * TILE - cam.y, 24 * TILE, 3 * TILE, nuked ? '#1a1816' : '#1c1c24');
     }
     if (!nuked) {
       shops.forEach(function (s) {
@@ -2289,21 +2356,24 @@
     beep(1180, 0.14, 0.04, 'square');
   }
 
-  function goTrack() {
+  function saveWorldReturn() {
+    if (isTestPlace(place)) return;
+    worldReturn.place = place === 'mall' ? 'mall' : 'city';
+    worldReturn.x = player.x;
+    worldReturn.y = player.y;
+  }
+
+  function goTestMap(name, x, y, label) {
     if (nuked || scene === 'nuke' || scene === 'end') return;
     if (scene === 'title') begin();
-    if (place !== 'track') {
-      worldReturn.place = place === 'mall' ? 'mall' : 'city';
-      worldReturn.x = player.x;
-      worldReturn.y = player.y;
-    }
-    usePlace('track');
-    player.x = 34 * TILE + 8;
-    player.y = 55 * TILE + 8;
+    saveWorldReturn();
+    usePlace(name);
+    player.x = x;
+    player.y = y;
     drive.on = true;
     drive.parked = false;
-    drive.x = player.x;
-    drive.y = player.y;
+    drive.x = x;
+    drive.y = y;
     drive.dir = 2;
     if (drive.kind !== 'sport' && drive.kind !== 'outdoors' && drive.kind !== 'rocket') {
       drive.kind = 'sport';
@@ -2311,15 +2381,23 @@
     gas = 100;
     snapCamToPlayer();
     enterCheatWorld();
-    ui.prompt.textContent = 'Test track · F1 here · drag south · takemeback';
+    ui.prompt.textContent = label;
     show(ui.prompt, true);
     beep(520, 0.08, 0.05, 'square');
     beep(780, 0.12, 0.04, 'square');
   }
 
+  function goTrack() {
+    goTestMap('track', 34 * TILE + 8, 55 * TILE + 8, 'Test track · F1 here · drag south · takemeback');
+  }
+
+  function goMonaco() {
+    goTestMap('monaco', 34 * TILE + 8, 67 * TILE + 8, 'Monaco · hairpin · tunnel · pool · takemeback');
+  }
+
   function goWorldBack() {
     if (nuked || scene === 'nuke' || scene === 'end') return;
-    if (place !== 'track') return;
+    if (!isTestPlace(place)) return;
     usePlace(worldReturn.place === 'mall' ? 'mall' : 'city');
     player.x = worldReturn.x || 18 * TILE;
     player.y = worldReturn.y || 20 * TILE;
@@ -2345,6 +2423,7 @@
   var BACK_CODE = 'takemeback';
   var ROCKET_CODE = 'rocketpower';
   var RENT_CODE = 'iwannarentthiscar';
+  var MONACO_CODE = 'monaco';
 
   window.addEventListener('keydown', function (e) {
     keys[e.key] = true;
@@ -2362,6 +2441,10 @@
         typed = '';
         ensureAudio();
         goWorldBack();
+      } else if (typed.slice(-MONACO_CODE.length) === MONACO_CODE) {
+        typed = '';
+        ensureAudio();
+        goMonaco();
       } else if (typed.slice(-ROCKET_CODE.length) === ROCKET_CODE) {
         typed = '';
         ensureAudio();

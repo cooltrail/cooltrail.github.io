@@ -8,9 +8,9 @@ tags = ['game', 'callpole']
 categories = ['games']
 +++
 
-<a href="/callpole/?v=10" class="play-btn">Open fullscreen</a>
+<a href="/callpole/?v=11" class="play-btn">Open fullscreen</a>
 
-<iframe class="isle-frame" src="/callpole/?v=10" title="Callpole" allow="autoplay"></iframe>
+<iframe class="isle-frame" src="/callpole/?v=11" title="Callpole" allow="autoplay"></iframe>
 
 Talk to **Mira** the arctic fox in the plaza. Find all **6** lost blueprint pieces across the **city**, the huge **mall**, the **highways**, and the **countryside** (village and farm). A minimap shows the whole map. Then take the set to **Rex** the wolf at the military **South Base** (under the city on the minimap).
 
