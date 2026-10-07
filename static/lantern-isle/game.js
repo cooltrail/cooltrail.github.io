@@ -220,7 +220,17 @@
   }
 
   function addBuilding(x, y, w, h, col) {
-    fill(x, y, w, h, 3);
+    var i, j, xx, yy, id;
+    for (j = 0; j < h; j++) {
+      for (i = 0; i < w; i++) {
+        xx = x + i;
+        yy = y + j;
+        if (!map[yy] || xx < 0 || xx >= map[0].length) continue;
+        id = map[yy][xx];
+        if (id === 1 || id === 5 || id === 6 || id === 9) continue;
+        map[yy][xx] = 3;
+      }
+    }
     buildings.push({ x: x, y: y, w: w, h: h, col: col || '#888888' });
   }
 
@@ -371,14 +381,37 @@
     addBuilding(27, 5, 20, 11, '#d2c4a8');
     addBuilding(8, 16, 12, 18, '#b8a090');
     addBuilding(27, 23, 18, 10, '#c4b49a');
-    addBuilding(53, 24, 14, 28, '#a89888');
+    addBuilding(53, 22, 12, 12, '#a89888');
+    addBuilding(53, 39, 12, 13, '#a89888');
     addBuilding(20, 56, 26, 5, '#b8a090');
     addBuilding(36, 40, 10, 12, '#9a8a7a');
     addBuilding(8, 40, 12, 22, '#8a8078');
-    addBuilding(90, 28, 24, 10, '#8a8a92');
+    addBuilding(90, 28, 24, 6, '#8a8a92');
     addBuilding(20, 70, 28, 3, '#6a7080');
-    addBuilding(122, 36, 10, 8, '#c4b49a');
+    addBuilding(122, 30, 10, 6, '#c4b49a');
     addBuilding(136, 52, 8, 10, '#a89888');
+    fill(18, 66, 42, tw, 9);
+    fill(57, 54, tw, 15, 9);
+    fill(48, 54, 12, tw, 9);
+    fill(48, 22, tw, 35, 9);
+    fill(22, 18, 29, tw, 9);
+    fill(22, 18, tw, 20, 9);
+    fill(22, 35, 64, tw, 9);
+    fill(83, 35, tw, 16, 9);
+    fill(72, 48, 14, tw, 9);
+    fill(72, 40, 48, tw, 9);
+    fill(117, 40, tw, 10, 9);
+    fill(117, 47, 16, tw, 9);
+    fill(130, 47, tw, 12, 9);
+    fill(112, 56, 21, tw, 9);
+    fill(112, 56, tw, 12, 9);
+    fill(112, 65, 22, tw, 9);
+    fill(131, 65, tw, 12, 9);
+    fill(16, 74, 118, tw, 9);
+    fill(16, 66, tw, 11, 9);
+    fill(24, 62, 28, 2, 1);
+    fill(24, 62, 2, 5, 1);
+    fill(50, 62, 2, 5, 1);
     monacoMap = map;
     monacoBuildings = buildings;
   }
@@ -1083,6 +1116,16 @@
   function drawBuilding(b) {
     var h = nuked ? Math.max(TILE, Math.floor(b.h * TILE * 0.4)) : b.h * TILE;
     pix(b.x * TILE - cam.x, b.y * TILE - cam.y + (b.h * TILE - h), b.w * TILE, h, nuked ? '#3e3630' : (b.col || '#888888'));
+    var i, j, tx, ty, id;
+    for (j = 0; j < b.h; j++) {
+      for (i = 0; i < b.w; i++) {
+        tx = b.x + i;
+        ty = b.y + j;
+        if (!map[ty] || tx < 0 || tx >= map[0].length) continue;
+        id = map[ty][tx];
+        if (id === 1 || id === 5 || id === 6 || id === 9) drawTile(id, tx * TILE, ty * TILE);
+      }
+    }
   }
 
   function drawShop(s) {
