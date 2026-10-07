@@ -473,8 +473,8 @@
 
   function carSize(c) {
     var horiz = c.dir === 1 || c.dir === 2;
-    var long = c.kind === 'bus' ? 18 : c.kind === 'taxi' ? 14 : c.kind === 'sport' ? 16 : 12;
-    var short = c.kind === 'bus' ? 8 : c.kind === 'sport' ? 6 : 7;
+    var long = c.kind === 'bus' ? 18 : c.kind === 'taxi' ? 14 : (c.kind === 'sport' || c.kind === 'outdoors') ? 16 : 12;
+    var short = c.kind === 'bus' ? 8 : (c.kind === 'sport' || c.kind === 'outdoors') ? 6 : 7;
     return horiz ? { w: long, h: short } : { w: short, h: long };
   }
 
@@ -1053,6 +1053,22 @@
       roadTile(tileAt(x + hw - 1, y + hh - 1));
   }
 
+  function openOk(x, y, sz) {
+    var hw = sz.w / 2;
+    var hh = sz.h / 2;
+    var maxC = (map[0] ? map[0].length : COLS) * TILE;
+    var maxR = (map.length || ROWS) * TILE;
+    if (x - hw < 0 || y - hh < 0 || x + hw > maxC || y + hh > maxR) return false;
+    return !solid(tileAt(x - hw + 1, y - hh + 1)) &&
+      !solid(tileAt(x + hw - 1, y - hh + 1)) &&
+      !solid(tileAt(x - hw + 1, y + hh - 1)) &&
+      !solid(tileAt(x + hw - 1, y + hh - 1));
+  }
+
+  function driveOk(x, y, sz) {
+    return drive.kind === 'outdoors' ? openOk(x, y, sz) : roadOk(x, y, sz);
+  }
+
   function nearestPed(px, py) {
     var tx = Math.floor(px / TILE);
     var ty = Math.floor(py / TILE);
@@ -1181,11 +1197,12 @@
   }
 
   function updateDrive(dt) {
-    if (gas <= 0) {
+    var cheat = drive.kind === 'sport' || drive.kind === 'outdoors';
+    if (!cheat && gas <= 0) {
       parkCar();
       return;
     }
-    var spd = drive.kind === 'sport' ? 196 : 108;
+    var spd = drive.kind === 'sport' ? 392 : drive.kind === 'outdoors' ? 196 : 108;
     var ox = drive.x;
     var oy = drive.y;
     var vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
@@ -1203,9 +1220,9 @@
     var sz = carSize(drive);
     var nx = drive.x + vx * dt;
     var ny = drive.y + vy * dt;
-    if (roadOk(nx, drive.y, sz)) drive.x = nx;
-    if (roadOk(drive.x, ny, sz)) drive.y = ny;
-    if (drive.kind !== 'sport' && Math.abs(drive.x - ox) + Math.abs(drive.y - oy) > 0.2) {
+    if (driveOk(nx, drive.y, sz)) drive.x = nx;
+    if (driveOk(drive.x, ny, sz)) drive.y = ny;
+    if (!cheat && Math.abs(drive.x - ox) + Math.abs(drive.y - oy) > 0.2) {
       gas = Math.max(0, gas - 4 * dt);
       drawHud();
     }
@@ -1352,6 +1369,7 @@
     if (kind === 'taxi') return C.taxi;
     if (kind === 'rental') return '#3cb8a0';
     if (kind === 'sport') return '#d94a32';
+    if (kind === 'outdoors') return '#6a8c32';
     return '#8b93a3';
   }
 
@@ -1366,7 +1384,7 @@
     var tail = C.verm;
     if (x + s.w < 0 || y + s.h < 0 || x > VW || y > VH) return;
     pix(x, y, s.w, s.h, col);
-    if (c.kind === 'sport') {
+    if (c.kind === 'sport' || c.kind === 'outdoors') {
       pix(x + (horiz ? 2 : 2), y + (horiz ? 2 : 3), horiz ? s.w - 4 : 2, horiz ? 2 : s.h - 6, C.accent);
     }
     if (c.kind === 'taxi') {
@@ -2108,7 +2126,25 @@
     return { x: 12 * TILE + 8, y: 16 * TILE + 8 };
   }
 
-  function spawnSport() {
+  function findOpenWide(px, py) {
+    var sz = { w: 16, h: 6 };
+    if (openOk(px, py, sz)) return { x: px, y: py };
+    var tx = Math.floor(px / TILE);
+    var ty = Math.floor(py / TILE);
+    var r, dx, dy, x, y;
+    for (r = 1; r <= 24; r++) {
+      for (dy = -r; dy <= r; dy++) {
+        for (dx = -r; dx <= r; dx++) {
+          x = (tx + dx) * TILE + 8;
+          y = (ty + dy) * TILE + 8;
+          if (openOk(x, y, sz)) return { x: x, y: y };
+        }
+      }
+    }
+    return { x: 18 * TILE + 8, y: 20 * TILE + 8 };
+  }
+
+  function spawnCheatCar(kind, label) {
     if (nuked || scene === 'nuke' || scene === 'end') return;
     if (scene === 'title') begin();
     if (place !== 'city') {
@@ -2116,13 +2152,13 @@
       player.x = cityReturn.x || 18 * TILE;
       player.y = cityReturn.y || 20 * TILE;
     }
-    var pad = findRoadWide(player.x, player.y);
+    var pad = kind === 'outdoors' ? findOpenWide(player.x, player.y) : findRoadWide(player.x, player.y);
     drive.on = true;
     drive.parked = false;
     drive.x = pad.x;
     drive.y = pad.y;
     drive.dir = 2;
-    drive.kind = 'sport';
+    drive.kind = kind;
     gas = 100;
     player.x = pad.x;
     player.y = pad.y;
@@ -2137,7 +2173,7 @@
     show(ui.hud, true);
     scene = 'world';
     drawHud();
-    ui.prompt.textContent = 'Test sports car';
+    ui.prompt.textContent = label;
     show(ui.prompt, true);
     beep(880, 0.08, 0.05, 'square');
     beep(1180, 0.14, 0.04, 'square');
@@ -2146,6 +2182,7 @@
   var typed = '';
   var NUKE_CODE = 'howdoiturnthison';
   var SPORT_CODE = 'vroom';
+  var OUT_CODE = 'outdoors';
 
   window.addEventListener('keydown', function (e) {
     keys[e.key] = true;
@@ -2158,7 +2195,11 @@
       } else if (typed.slice(-SPORT_CODE.length) === SPORT_CODE) {
         typed = '';
         ensureAudio();
-        spawnSport();
+        spawnCheatCar('sport', 'Test sports car');
+      } else if (typed.slice(-OUT_CODE.length) === OUT_CODE) {
+        typed = '';
+        ensureAudio();
+        spawnCheatCar('outdoors', 'Outdoors racer');
       }
     }
     if ((e.key === '1' || e.code === 'Numpad1') && !e.repeat && (scene === 'world' || scene === 'ride')) {
