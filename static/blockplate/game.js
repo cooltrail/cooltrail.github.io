@@ -66,6 +66,11 @@ document.getElementById("jump").addEventListener("pointerdown", (event) => {
   leaveQueued = true;
 });
 
+document.getElementById("enter").addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  leaveQueued = true;
+});
+
 function held(code, dir) {
   return keys.has(code) || pad.has(dir);
 }
@@ -586,13 +591,14 @@ async function main() {
   block.receiveShadow = true;
 
   const spawn = trackFrame(0.08);
-  const car = makeCar(THREE, 0xe67e22, "911");
+  let car = makeCar(THREE, 0xe67e22, "911");
   block.position.set(0, 0.72, -0.02);
   block.visible = false;
   car.add(block);
   car.position.set(spawn.x, 0.02, spawn.z);
   car.rotation.y = spawn.yaw;
   scene.add(car);
+  const fleet = [car, ...racers.map((racer) => racer.mesh), ...parked];
 
   let driving = true;
   let heading = spawn.yaw;
@@ -601,6 +607,7 @@ async function main() {
   const ride = { vel: 0, pitch: 0, roll: 0, pVel: 0, rVel: 0 };
   const velocity = new THREE.Vector3();
   const actBtn = document.getElementById("jump");
+  const enterBtn = document.getElementById("enter");
   let yaw = 0;
   let pitch = 0.38;
   const distance = 9.5;
@@ -649,16 +656,34 @@ async function main() {
   const edge = PLATE / 2 - 1.8;
   const clock = new THREE.Clock();
 
-  function nearCar() {
-    const dx = block.position.x - car.position.x;
-    const dz = block.position.z - car.position.z;
-    return dx * dx + dz * dz < 3.2 * 3.2;
+  function nearestVehicle() {
+    let best = null;
+    let bestD = 4.8 * 4.8;
+    for (const mesh of fleet) {
+      const dx = block.position.x - mesh.position.x;
+      const dz = block.position.z - mesh.position.z;
+      const dist = dx * dx + dz * dz;
+      if (dist < bestD) {
+        bestD = dist;
+        best = mesh;
+      }
+    }
+    return best;
+  }
+
+  function levelChassis(mesh) {
+    mesh.userData.chassis.rotation.set(0, 0, 0);
+    for (const wheel of mesh.userData.wheels) {
+      wheel.strut.position.y = 0;
+      if (wheel.front) wheel.steer.rotation.y = 0;
+    }
   }
 
   function exitCar() {
     carSpeed = 0;
     const rx = Math.cos(heading);
     const rz = -Math.sin(heading);
+    levelChassis(car);
     car.updateMatrixWorld();
     scene.attach(block);
     const bx = car.position.x + rx * 1.6;
@@ -668,11 +693,24 @@ async function main() {
     block.visible = true;
     velocity.set(0, 0, 0);
     driving = false;
-    actBtn.textContent = "In";
-    actBtn.setAttribute("aria-label", "Get in");
+    actBtn.textContent = "Enter";
+    actBtn.setAttribute("aria-label", "Enter vehicle");
   }
 
-  function enterCar() {
+  function enterCar(target) {
+    const next = target || nearestVehicle();
+    if (!next) return;
+    const index = racers.findIndex((racer) => racer.mesh === next);
+    if (index >= 0) racers.splice(index, 1);
+    car = next;
+    heading = next.rotation.y;
+    carSpeed = 0;
+    ride.vel = 0;
+    ride.pitch = 0;
+    ride.roll = 0;
+    ride.pVel = 0;
+    ride.rVel = 0;
+    levelChassis(car);
     scene.updateMatrixWorld();
     car.attach(block);
     block.position.set(0, 0.72, -0.02);
@@ -753,7 +791,7 @@ async function main() {
     const spaceDown = keys.has("Space");
     if ((spaceDown && !spaceWasDown) || leaveQueued) {
       if (driving) exitCar();
-      else if (nearCar()) enterCar();
+      else enterCar();
     }
     spaceWasDown = spaceDown;
     leaveQueued = false;
@@ -771,7 +809,7 @@ async function main() {
       if (Math.abs(carSpeed) < 0.05 && !gas && !braking) carSpeed = 0;
     }
 
-    const steerInput = (steerRight ? 1 : 0) - (steerLeft ? 1 : 0);
+    const steerInput = (steerLeft ? 1 : 0) - (steerRight ? 1 : 0);
     if (driving) {
       const speedFactor = Math.min(1, Math.max(0.28, Math.abs(carSpeed) / 10));
       heading += steerInput * 2.15 * speedFactor * Math.sign(carSpeed || 1) * dt;
@@ -823,7 +861,7 @@ async function main() {
 
     if (driving) {
       let bumped = false;
-      const others = racers.map((racer) => racer.mesh).concat(parked);
+      const others = fleet.filter((mesh) => mesh !== car);
       for (const mesh of others) {
         const meshYaw = mesh.rotation.y;
         const dx = car.position.x - mesh.position.x;
@@ -877,9 +915,7 @@ async function main() {
       block.position.x = Math.min(foot, Math.max(-foot, block.position.x));
       block.position.z = Math.min(foot, Math.max(-foot, block.position.z));
       block.position.y = groundHeight(block.position.x, block.position.z) + BODY_H / 2;
-      pushBlock(car, heading);
-      for (const racer of racers) pushBlock(racer.mesh, racer.mesh.rotation.y);
-      for (const mesh of parked) pushBlock(mesh, mesh.rotation.y);
+      for (const mesh of fleet) pushBlock(mesh, mesh === car ? heading : mesh.rotation.y);
     }
 
     const camDist = driving ? distance : 6.5;
@@ -892,6 +928,18 @@ async function main() {
     );
     camera.position.copy(focus).add(look);
     camera.lookAt(focus.x, focus.y + (driving ? 0.7 : 0), focus.z);
+
+    const near = driving ? null : nearestVehicle();
+    enterBtn.classList.toggle("hidden", !near);
+    if (driving) {
+      actBtn.textContent = "Out";
+      actBtn.classList.remove("hidden");
+    } else if (near) {
+      actBtn.textContent = "Enter";
+      actBtn.classList.remove("hidden");
+    } else {
+      actBtn.classList.add("hidden");
+    }
 
     sun.position.set(focus.x + 12, 18, focus.z + 8);
     sun.target.position.set(focus.x, 0, focus.z);

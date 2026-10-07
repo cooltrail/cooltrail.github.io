@@ -14,7 +14,7 @@ categories = ['games']
 
 You drive an orange blocky **911**. The block stays hidden until you step out. Around the oval are chunky low-poly cars based on a Countach, an F-150, a Beetle, a Wrangler, and a Type 2 bus. A Cybertruck is parked by the bumps. The baseplate also has a **bump strip** and a **dirt hill**.
 
-W or up for gas. S or down to brake. A and D, or left and right, to steer. Space gets out, and gets back in when you are next to your car. Drag to look around. On a phone, use the pad.
+W or up for gas. S or down to brake. A and D, or left and right, to steer. Space gets out. Walk up to any car and press Space, or the Enter vehicle button, to drive it. Drag to look around. On a phone, use the pad.
 
 <style>
 .play-btn {
