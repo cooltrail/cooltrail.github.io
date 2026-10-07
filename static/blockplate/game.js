@@ -200,9 +200,10 @@ function makeCar(THREE, color, kind = "911") {
   const rim = flat(0xd0d6de, 0.32, 0.48);
   const mats = { paint, dark, glass, lamp, tail, chrome, roof: roofMat };
 
+  const lift = 2;
   function box(w, h, d, mat, x, y, z, rx = 0, ry = 0, rz = 0) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    mesh.position.set(x, y, z);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h * lift, d), mat);
+    mesh.position.set(x, y * lift, z);
     mesh.rotation.set(rx, ry, rz);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -214,7 +215,7 @@ function makeCar(THREE, color, kind = "911") {
     const geo = new THREE.CylinderGeometry(r, r, len, 6);
     geo.rotateX(Math.PI / 2);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y, z);
+    mesh.position.set(x, y * lift, z);
     mesh.castShadow = true;
     chassis.add(mesh);
     return mesh;
@@ -223,7 +224,9 @@ function makeCar(THREE, color, kind = "911") {
   const spec = JAIL_CARS[kind] || JAIL_CARS["911"];
   spec.build(box, disc, mats);
 
-  const { radius, halfTrack, axle, tireWidth } = spec;
+  const radius = spec.radius * 1.45;
+  const { halfTrack, axle } = spec;
+  const tireWidth = spec.tireWidth * 1.3;
   const wheelGeo = new THREE.CylinderGeometry(radius, radius, tireWidth, 8);
   wheelGeo.rotateZ(Math.PI / 2);
   const hubGeo = new THREE.CylinderGeometry(radius * 0.48, radius * 0.48, tireWidth + 0.05, 6);
@@ -757,28 +760,52 @@ async function main() {
       const z = mesh.position.z + rz * wheel.x + fz * wheel.z;
       return groundHeight(x, z);
     });
-    const avg = samples.reduce((sum, value) => sum + value, 0) / samples.length;
-    ride.vel += (avg - mesh.position.y) * 78 * dt;
-    ride.vel *= Math.exp(-4.4 * dt);
+
+    const spring = 280;
+    const gravity = 32;
+    const rest = gravity / (samples.length * spring);
+    const droop = 0.16;
+    let support = 0;
+    let touching = 0;
+    for (let i = 0; i < samples.length; i += 1) {
+      const compression = samples[i] - mesh.position.y + rest;
+      const canReach = mesh.position.y <= samples[i] + droop;
+      if (canReach && compression > 0) {
+        touching += 1;
+        support += Math.min(compression, 0.4) * spring;
+      }
+    }
+    const damp = touching ? 18 : 1.2;
+    ride.vel += (support - gravity - ride.vel * damp) * dt;
+    ride.vel = Math.max(-24, Math.min(18, ride.vel));
     mesh.position.y += ride.vel * dt;
 
+    const lowest = Math.min(...samples);
+    if (mesh.position.y < lowest - 0.15) {
+      mesh.position.y = lowest;
+      if (ride.vel < 0) ride.vel *= -0.1;
+    }
+
+    const grounded = touching >= 2;
     const front = (samples[0] + samples[1]) / 2;
     const back = (samples[2] + samples[3]) / 2;
     const left = (samples[1] + samples[3]) / 2;
     const right = (samples[0] + samples[2]) / 2;
-    const targetPitch = Math.atan2(front - back, 2.2);
-    const targetRoll = Math.atan2(left - right, 1.6);
-    ride.pVel += (targetPitch - ride.pitch) * 46 * dt;
-    ride.rVel += (targetRoll - ride.roll) * 46 * dt;
-    ride.pVel *= Math.exp(-5 * dt);
-    ride.rVel *= Math.exp(-5 * dt);
+    const targetPitch = grounded ? Math.atan2(front - back, 2.2) : 0;
+    const targetRoll = grounded ? Math.atan2(left - right, 1.6) : 0;
+    const lean = grounded ? 22 : 5;
+    ride.pVel += (targetPitch - ride.pitch) * lean * dt;
+    ride.rVel += (targetRoll - ride.roll) * lean * dt;
+    ride.pVel *= Math.exp(-3.2 * dt);
+    ride.rVel *= Math.exp(-3.2 * dt);
     ride.pitch += ride.pVel * dt;
     ride.roll += ride.rVel * dt;
     mesh.userData.chassis.rotation.x = -ride.pitch;
     mesh.userData.chassis.rotation.z = -ride.roll;
 
     for (let i = 0; i < wheels.length; i += 1) {
-      wheels[i].strut.position.y = Math.max(-0.42, Math.min(0.26, samples[i] - mesh.position.y));
+      const hang = samples[i] - mesh.position.y;
+      wheels[i].strut.position.y = Math.max(-droop, Math.min(0.42, hang));
     }
   }
 
@@ -827,7 +854,6 @@ async function main() {
         carSpeed *= 0.35;
       }
       car.rotation.y = heading;
-      suspendCar(car, heading, dt);
       for (const wheel of car.userData.wheels) {
         if (wheel.front) wheel.steer.rotation.y = steerInput * 0.5;
         wheel.spin.rotation.x += (carSpeed * dt) / wheel.radius;
@@ -918,6 +944,8 @@ async function main() {
       for (const mesh of fleet) pushBlock(mesh, mesh === car ? heading : mesh.rotation.y);
     }
 
+    suspendCar(car, driving ? heading : car.rotation.y, dt);
+
     const camDist = driving ? distance : 6.5;
     const behind = (driving ? heading + Math.PI : 0) + yaw;
     const focus = driving ? car.position : block.position;
@@ -927,7 +955,7 @@ async function main() {
       Math.cos(behind) * Math.cos(pitch) * camDist,
     );
     camera.position.copy(focus).add(look);
-    camera.lookAt(focus.x, focus.y + (driving ? 0.7 : 0), focus.z);
+    camera.lookAt(focus.x, focus.y + (driving ? 1.05 : 0), focus.z);
 
     const near = driving ? null : nearestVehicle();
     enterBtn.classList.toggle("hidden", !near);
