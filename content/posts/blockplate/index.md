@@ -12,7 +12,7 @@ categories = ['games']
 
 <iframe class="isle-frame" src="/blockplate/" title="Blockplate" allow="autoplay"></iframe>
 
-You drive an orange blocky **911**. The block stays hidden until you step out. Around the oval are chunky low-poly cars based on a Countach, an F-150, a Beetle, a Wrangler, and a Type 2 bus. A Cybertruck is parked by the bumps. The baseplate also has a **bump strip** that can launch the car and a **dirt hill**.
+You drive an orange sports car. The block stays hidden until you step out. Around the oval are simplified low-poly cars from Kenney's car kit: a racer, a truck, a sedan, an SUV, and a van. A future racer is parked by the bumps. The baseplate also has a **bump strip** that can launch the car and a **dirt hill**.
 
 W or up for gas. S or down to brake. A and D, or left and right, to steer. Space gets out. Walk up to any car and press Space, or the Enter vehicle button, to drive it. Drag to look around. On a phone, use the pad.
 

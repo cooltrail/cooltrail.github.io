@@ -1,3 +1,5 @@
+import { CARS } from "./cars.js";
+
 const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
 
 const PLATE = 200;
@@ -178,62 +180,63 @@ function checkerTexture(THREE) {
 }
 
 function makeCar(THREE, color, kind = "911") {
+  const spec = CARS[kind] || CARS["911"];
   const group = new THREE.Group();
   const chassis = new THREE.Group();
   group.add(chassis);
-  const flat = (hex, roughness, metalness, emissive = 0, emissiveIntensity = 0) => new THREE.MeshStandardMaterial({
-    color: hex,
-    roughness,
-    metalness,
-    flatShading: true,
-    emissive,
-    emissiveIntensity,
-  });
-  const paint = flat(color, 0.64, 0.05);
-  const dark = flat(0x17191d, 0.82, 0.02);
-  const glass = flat(0x1a3348, 0.22, 0.12);
-  const lamp = flat(0xfff6d0, 0.28, 0.04, 0xffe8a8, 0.85);
-  const tail = flat(0xd01818, 0.4, 0.04, 0xb01010, 0.6);
-  const chrome = flat(0xd7dee6, 0.3, 0.5);
-  const roofMat = flat(0xf6f3ec, 0.7, 0.03);
-  const rubber = flat(0x141414, 0.9, 0);
-  const rim = flat(0xd0d6de, 0.32, 0.48);
-  const mats = { paint, dark, glass, lamp, tail, chrome, roof: roofMat };
-
-  const lift = 1.65;
-  function box(w, h, d, mat, x, y, z, rx = 0, ry = 0, rz = 0) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h * lift, d), mat);
-    mesh.position.set(x, y * lift, z);
-    mesh.rotation.set(rx, ry, rz);
+  const paint = new THREE.Color(color);
+  const palette = {
+    paint,
+    dark: new THREE.Color(0x1a1c20),
+    glass: new THREE.Color(0x243848),
+    lamp: new THREE.Color(0xfff3c4),
+    tail: new THREE.Color(0xc41818),
+  };
+  const positions = [];
+  const colors = [];
+  const lightPositions = [];
+  const lightColors = [];
+  for (const name of ["paint", "dark", "glass", "lamp", "tail"]) {
+    const tint = palette[name];
+    const intoPos = name === "lamp" || name === "tail" ? lightPositions : positions;
+    const intoCol = name === "lamp" || name === "tail" ? lightColors : colors;
+    const src = spec[name];
+    for (let i = 0; i < src.length; i += 3) {
+      intoPos.push(src[i], src[i + 1], src[i + 2]);
+      intoCol.push(tint.r, tint.g, tint.b);
+    }
+  }
+  function addMesh(pos, col, emissive) {
+    if (!pos.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      flatShading: true,
+      roughness: 0.72,
+      metalness: 0.04,
+      emissive: emissive || 0x000000,
+      emissiveIntensity: emissive ? 0.55 : 0,
+    }));
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     chassis.add(mesh);
-    return mesh;
   }
+  addMesh(positions, colors, 0);
+  addMesh(lightPositions, lightColors, 0xffd9a0);
 
-  function disc(r, len, mat, x, y, z) {
-    const geo = new THREE.CylinderGeometry(r, r, len, 6);
-    geo.rotateX(Math.PI / 2);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y * lift, z);
-    mesh.castShadow = true;
-    chassis.add(mesh);
-    return mesh;
-  }
-
-  const spec = JAIL_CARS[kind] || JAIL_CARS["911"];
-  spec.build(box, disc, mats);
-
-  const radius = spec.radius * 1.28;
-  const { halfTrack, axle } = spec;
-  const tireWidth = spec.tireWidth * 1.15;
+  const { radius, tireWidth } = spec;
   const wheelGeo = new THREE.CylinderGeometry(radius, radius, tireWidth, 8);
   wheelGeo.rotateZ(Math.PI / 2);
-  const hubGeo = new THREE.CylinderGeometry(radius * 0.48, radius * 0.48, tireWidth + 0.05, 6);
+  const hubGeo = new THREE.CylinderGeometry(radius * 0.46, radius * 0.46, tireWidth + 0.04, 6);
   hubGeo.rotateZ(Math.PI / 2);
-  const spokeGeo = new THREE.BoxGeometry(tireWidth * 0.28, radius * 0.42, radius * 0.1);
+  const spokeGeo = new THREE.BoxGeometry(tireWidth * 0.22, radius * 0.4, radius * 0.1);
+  const rubber = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.9, flatShading: true });
+  const rim = new THREE.MeshStandardMaterial({ color: 0xd0d6de, roughness: 0.35, metalness: 0.45, flatShading: true });
   const wheels = [];
-  for (const [x, z, front] of [[halfTrack, axle, true], [-halfTrack, axle, true], [halfTrack, -axle, false], [-halfTrack, -axle, false]]) {
+  for (const [x, z, front] of spec.wheels) {
     const steer = new THREE.Group();
     steer.position.set(x, radius, z);
     const strut = new THREE.Group();
@@ -242,7 +245,6 @@ function makeCar(THREE, color, kind = "911") {
     tire.castShadow = true;
     spin.add(tire);
     const hub = new THREE.Mesh(hubGeo, rim);
-    hub.position.x = tireWidth * 0.02;
     spin.add(hub);
     for (let i = 0; i < 5; i += 1) {
       const pivot = new THREE.Group();
@@ -255,180 +257,14 @@ function makeCar(THREE, color, kind = "911") {
     strut.add(spin);
     steer.add(strut);
     group.add(steer);
-    wheels.push({ steer, strut, spin, radius, front, x, z });
+    wheels.push({ steer, strut, spin, radius, front: Boolean(front), x, z });
   }
   group.userData.chassis = chassis;
   group.userData.wheels = wheels;
+  group.userData.halfX = spec.halfX;
+  group.userData.halfZ = spec.halfZ;
   return group;
 }
-
-const JAIL_CARS = {
-  "911": {
-    radius: 0.3,
-    halfTrack: 0.88,
-    axle: 1.08,
-    tireWidth: 0.24,
-    build(box, disc, m) {
-      box(1.28, 0.12, 3.05, m.dark, 0, 0.38, 0);
-      box(1.42, 0.26, 2.45, m.paint, 0, 0.5, 0.05);
-      box(0.34, 0.28, 1.45, m.paint, 0.8, 0.64, -0.5);
-      box(0.34, 0.28, 1.45, m.paint, -0.8, 0.64, -0.5);
-      box(0.28, 0.2, 0.9, m.paint, 0.72, 0.58, 0.95);
-      box(0.28, 0.2, 0.9, m.paint, -0.72, 0.58, 0.95);
-      box(1.12, 0.1, 1.05, m.paint, 0, 0.62, 0.9);
-      box(1.35, 0.14, 0.2, m.paint, 0, 0.4, 1.52);
-      box(1.5, 0.2, 0.26, m.paint, 0, 0.52, -1.38);
-      box(1.02, 0.34, 0.82, m.paint, 0, 0.8, -0.22);
-      box(0.82, 0.1, 0.48, m.paint, 0, 1.0, -0.3);
-      box(1.0, 0.4, 0.07, m.glass, 0, 0.84, 0.22, -0.7);
-      box(0.82, 0.28, 0.07, m.glass, 0, 0.86, -0.66, 0.58);
-      box(0.07, 0.22, 0.5, m.glass, 0.52, 0.82, -0.22);
-      box(0.07, 0.22, 0.5, m.glass, -0.52, 0.82, -0.22);
-      box(1.45, 0.07, 0.2, m.paint, 0, 0.78, -1.46, -0.4);
-      box(1.25, 0.09, 0.06, m.tail, 0, 0.52, -1.52);
-      disc(0.1, 0.08, m.lamp, -0.42, 0.5, 1.58);
-      disc(0.1, 0.08, m.lamp, 0.42, 0.5, 1.58);
-      box(0.16, 0.08, 0.12, m.paint, 0.86, 0.78, 0.18);
-      box(0.16, 0.08, 0.12, m.paint, -0.86, 0.78, 0.18);
-      disc(0.045, 0.1, m.chrome, -0.22, 0.36, -1.52);
-      disc(0.045, 0.1, m.chrome, 0.22, 0.36, -1.52);
-    },
-  },
-  wedge: {
-    radius: 0.28,
-    halfTrack: 0.96,
-    axle: 1.18,
-    tireWidth: 0.26,
-    build(box, disc, m) {
-      box(1.7, 0.1, 3.55, m.dark, 0, 0.3, 0);
-      box(1.9, 0.16, 3.35, m.paint, 0, 0.4, 0);
-      box(1.45, 0.1, 1.05, m.paint, 0, 0.34, 1.4, 0.2);
-      box(0.95, 0.18, 0.5, m.dark, 0, 0.54, 0.12);
-      box(0.9, 0.28, 0.06, m.glass, 0, 0.56, 0.42, -0.95);
-      for (let i = 0; i < 6; i += 1) box(1.15, 0.035, 0.1, m.dark, 0, 0.5, -0.35 - i * 0.16);
-      box(1.6, 0.045, 0.28, m.paint, 0, 0.74, -1.5);
-      box(0.06, 0.28, 0.06, m.dark, -0.5, 0.58, -1.5);
-      box(0.06, 0.28, 0.06, m.dark, 0.5, 0.58, -1.5);
-      box(0.28, 0.08, 0.1, m.lamp, -0.5, 0.36, 1.55, 0.35);
-      box(0.28, 0.08, 0.1, m.lamp, 0.5, 0.36, 1.55, 0.35);
-      box(0.22, 0.08, 0.06, m.tail, -0.7, 0.4, -1.68);
-      box(0.22, 0.08, 0.06, m.tail, 0.7, 0.4, -1.68);
-      box(0.14, 0.08, 0.12, m.paint, 0.98, 0.48, 0.3);
-      box(0.14, 0.08, 0.12, m.paint, -0.98, 0.48, 0.3);
-    },
-  },
-  f150: {
-    radius: 0.38,
-    halfTrack: 0.9,
-    axle: 1.22,
-    tireWidth: 0.3,
-    build(box, disc, m) {
-      box(1.45, 0.12, 3.7, m.dark, 0, 0.48, -0.1);
-      box(1.6, 0.38, 1.9, m.paint, 0, 0.74, -0.85);
-      box(1.28, 0.08, 1.5, m.dark, 0, 0.92, -0.8);
-      box(1.5, 0.16, 0.08, m.paint, 0, 0.78, -1.78);
-      box(1.52, 0.64, 1.2, m.paint, 0, 1.12, 0.72);
-      box(1.4, 0.14, 0.95, m.paint, 0, 0.8, 1.55);
-      box(1.28, 0.36, 0.06, m.glass, 0, 1.18, 1.28, -0.18);
-      box(0.08, 0.28, 0.55, m.glass, 0.78, 1.16, 0.7);
-      box(0.08, 0.28, 0.55, m.glass, -0.78, 1.16, 0.7);
-      box(0.9, 0.32, 0.06, m.dark, 0, 0.74, 2.0);
-      for (let i = 0; i < 4; i += 1) box(0.06, 0.26, 0.04, m.chrome, -0.28 + i * 0.18, 0.74, 2.04);
-      box(1.55, 0.12, 0.16, m.chrome, 0, 0.52, 2.05);
-      box(0.32, 0.14, 0.08, m.lamp, -0.55, 0.68, 2.02);
-      box(0.32, 0.14, 0.08, m.lamp, 0.55, 0.68, 2.02);
-      box(0.2, 0.12, 0.06, m.tail, -0.6, 0.78, -1.82);
-      box(0.2, 0.12, 0.06, m.tail, 0.6, 0.78, -1.82);
-      box(0.16, 0.1, 0.14, m.paint, 0.9, 1.15, 1.05);
-      box(0.16, 0.1, 0.14, m.paint, -0.9, 1.15, 1.05);
-    },
-  },
-  beetle: {
-    radius: 0.28,
-    halfTrack: 0.74,
-    axle: 0.78,
-    tireWidth: 0.2,
-    build(box, disc, m) {
-      box(1.05, 0.26, 1.85, m.paint, 0, 0.48, 0);
-      for (const z of [-0.48, 0.52]) {
-        box(0.32, 0.28, 0.72, m.paint, 0.62, 0.5, z);
-        box(0.32, 0.28, 0.72, m.paint, -0.62, 0.5, z);
-      }
-      box(0.9, 0.05, 0.7, m.dark, 0.55, 0.34, 0.02);
-      box(0.9, 0.05, 0.7, m.dark, -0.55, 0.34, 0.02);
-      box(0.95, 0.32, 1.0, m.paint, 0, 0.74, -0.02);
-      box(0.7, 0.16, 0.62, m.paint, 0, 0.96, -0.02);
-      box(0.85, 0.32, 0.07, m.glass, 0, 0.78, 0.48, -0.35);
-      box(0.7, 0.24, 0.07, m.glass, 0, 0.8, -0.52, 0.4);
-      disc(0.1, 0.08, m.lamp, -0.38, 0.52, 1.02);
-      disc(0.1, 0.08, m.lamp, 0.38, 0.52, 1.02);
-      box(0.16, 0.08, 0.06, m.tail, -0.32, 0.5, -0.98);
-      box(0.16, 0.08, 0.06, m.tail, 0.32, 0.5, -0.98);
-    },
-  },
-  jeep: {
-    radius: 0.4,
-    halfTrack: 0.92,
-    axle: 1.05,
-    tireWidth: 0.3,
-    build(box, disc, m) {
-      box(1.45, 0.4, 2.3, m.paint, 0, 0.74, -0.05);
-      box(1.2, 0.1, 0.85, m.paint, 0, 0.92, 0.95);
-      box(1.22, 0.46, 0.07, m.glass, 0, 1.18, 0.42, -0.12);
-      box(0.08, 0.55, 0.08, m.dark, 0.58, 1.18, -0.25);
-      box(0.08, 0.55, 0.08, m.dark, -0.58, 1.18, -0.25);
-      box(1.24, 0.08, 0.08, m.dark, 0, 1.42, -0.25);
-      box(0.72, 0.34, 0.06, m.dark, 0, 0.74, 1.22);
-      for (let i = 0; i < 7; i += 1) box(0.045, 0.28, 0.04, m.paint, -0.24 + i * 0.08, 0.74, 1.26);
-      disc(0.11, 0.08, m.lamp, -0.42, 0.8, 1.24);
-      disc(0.11, 0.08, m.lamp, 0.42, 0.8, 1.24);
-      box(1.4, 0.1, 0.12, m.chrome, 0, 0.52, 1.28);
-      disc(0.28, 0.12, m.dark, 0, 1.0, -1.22);
-      disc(0.12, 0.14, m.chrome, 0, 1.0, -1.22);
-      box(0.14, 0.1, 0.12, m.paint, 0.86, 1.05, 0.35);
-      box(0.14, 0.1, 0.12, m.paint, -0.86, 1.05, 0.35);
-    },
-  },
-  bus: {
-    radius: 0.32,
-    halfTrack: 0.84,
-    axle: 1.28,
-    tireWidth: 0.22,
-    build(box, disc, m) {
-      box(1.6, 1.0, 3.05, m.paint, 0, 1.02, 0);
-      box(1.45, 0.16, 2.65, m.roof, 0, 1.56, -0.05);
-      box(0.55, 0.38, 0.06, m.glass, -0.36, 1.18, 1.55);
-      box(0.55, 0.38, 0.06, m.glass, 0.36, 1.18, 1.55);
-      box(0.12, 0.7, 0.7, m.paint, -0.55, 0.85, 1.35, 0, 0.55);
-      box(0.12, 0.7, 0.7, m.paint, 0.55, 0.85, 1.35, 0, -0.55);
-      for (const x of [-0.82, 0.82]) {
-        for (const z of [-0.9, -0.15, 0.6]) box(0.06, 0.32, 0.42, m.glass, x, 1.16, z);
-      }
-      disc(0.1, 0.08, m.lamp, -0.48, 0.68, 1.58);
-      disc(0.1, 0.08, m.lamp, 0.48, 0.68, 1.58);
-      box(1.35, 0.1, 0.12, m.chrome, 0, 0.5, 1.6);
-      box(1.3, 0.1, 0.1, m.chrome, 0, 0.52, -1.55);
-      box(0.16, 0.1, 0.12, m.paint, 0.9, 1.2, 1.15);
-      box(0.16, 0.1, 0.12, m.paint, -0.9, 1.2, 1.15);
-    },
-  },
-  cyber: {
-    radius: 0.36,
-    halfTrack: 0.96,
-    axle: 1.28,
-    tireWidth: 0.24,
-    build(box, disc, m) {
-      box(1.85, 0.26, 3.55, m.paint, 0, 0.52, 0.05);
-      box(1.7, 0.62, 1.6, m.paint, 0, 0.9, -0.7, 0.14);
-      box(1.6, 0.55, 0.08, m.glass, 0, 0.88, 0.45, -0.62);
-      box(1.35, 0.07, 0.08, m.lamp, 0, 0.55, 1.62);
-      box(0.22, 0.08, 0.06, m.tail, -0.7, 0.62, -1.72);
-      box(0.22, 0.08, 0.06, m.tail, 0.7, 0.62, -1.72);
-      box(1.7, 0.04, 0.04, m.dark, 0, 0.66, -0.15);
-      box(1.7, 0.04, 0.04, m.dark, 0, 0.66, 0.55);
-    },
-  },
-};
 
 function plainMaterial(THREE, color) {
   return new THREE.MeshStandardMaterial({
@@ -733,8 +569,8 @@ async function main() {
     const fz = Math.cos(meshYaw);
     const localX = dx * rx + dz * rz;
     const localZ = dx * fx + dz * fz;
-    const limitX = 0.85 + 0.3;
-    const limitZ = 1.65 + 0.3;
+    const limitX = mesh.userData.halfX + 0.35;
+    const limitZ = mesh.userData.halfZ + 0.3;
     if (Math.abs(localX) >= limitX || Math.abs(localZ) >= limitZ) return;
     const pushX = limitX - Math.abs(localX);
     const pushZ = limitZ - Math.abs(localZ);
@@ -898,8 +734,8 @@ async function main() {
         const fz = Math.cos(meshYaw);
         const localX = dx * rx + dz * rz;
         const localZ = dx * fx + dz * fz;
-        const limitX = 1.7;
-        const limitZ = 3.3;
+        const limitX = mesh.userData.halfX + car.userData.halfX;
+        const limitZ = mesh.userData.halfZ + car.userData.halfZ;
         if (Math.abs(localX) >= limitX || Math.abs(localZ) >= limitZ) continue;
         const pushX = limitX - Math.abs(localX);
         const pushZ = limitZ - Math.abs(localZ);
