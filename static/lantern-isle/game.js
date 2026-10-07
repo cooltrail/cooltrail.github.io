@@ -473,8 +473,8 @@
 
   function carSize(c) {
     var horiz = c.dir === 1 || c.dir === 2;
-    var long = c.kind === 'bus' ? 18 : c.kind === 'taxi' ? 14 : 12;
-    var short = c.kind === 'bus' ? 8 : 7;
+    var long = c.kind === 'bus' ? 18 : c.kind === 'taxi' ? 14 : c.kind === 'sport' ? 16 : 12;
+    var short = c.kind === 'bus' ? 8 : c.kind === 'sport' ? 6 : 7;
     return horiz ? { w: long, h: short } : { w: short, h: long };
   }
 
@@ -1185,7 +1185,7 @@
       parkCar();
       return;
     }
-    var spd = 108;
+    var spd = drive.kind === 'sport' ? 196 : 108;
     var ox = drive.x;
     var oy = drive.y;
     var vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
@@ -1205,7 +1205,7 @@
     var ny = drive.y + vy * dt;
     if (roadOk(nx, drive.y, sz)) drive.x = nx;
     if (roadOk(drive.x, ny, sz)) drive.y = ny;
-    if (Math.abs(drive.x - ox) + Math.abs(drive.y - oy) > 0.2) {
+    if (drive.kind !== 'sport' && Math.abs(drive.x - ox) + Math.abs(drive.y - oy) > 0.2) {
       gas = Math.max(0, gas - 4 * dt);
       drawHud();
     }
@@ -1351,6 +1351,7 @@
     if (kind === 'bus') return C.bus;
     if (kind === 'taxi') return C.taxi;
     if (kind === 'rental') return '#3cb8a0';
+    if (kind === 'sport') return '#d94a32';
     return '#8b93a3';
   }
 
@@ -1365,6 +1366,9 @@
     var tail = C.verm;
     if (x + s.w < 0 || y + s.h < 0 || x > VW || y > VH) return;
     pix(x, y, s.w, s.h, col);
+    if (c.kind === 'sport') {
+      pix(x + (horiz ? 2 : 2), y + (horiz ? 2 : 3), horiz ? s.w - 4 : 2, horiz ? 2 : s.h - 6, C.accent);
+    }
     if (c.kind === 'taxi') {
       pix(x + (horiz ? s.w / 2 - 2 : 2), y + (horiz ? -2 : s.h / 2 - 2), horiz ? 4 : 3, horiz ? 2 : 4, C.taxi);
       pix(x + (horiz ? s.w / 2 - 1 : 3), y + (horiz ? -3 : s.h / 2 - 1), horiz ? 2 : 1, horiz ? 1 : 2, '#222');
@@ -2086,17 +2090,44 @@
     beep(392, 0.08, 0.04, 'sine');
   }
 
+  function spawnSport() {
+    if (nuked || scene === 'nuke' || scene === 'end' || scene === 'title') return;
+    if (place !== 'city') return;
+    var pad = nearestRoad(player.x, player.y);
+    drive.on = true;
+    drive.parked = false;
+    drive.x = pad.x;
+    drive.y = pad.y;
+    drive.dir = player.dir === 1 ? 1 : 2;
+    drive.kind = 'sport';
+    gas = 100;
+    player.x = pad.x;
+    player.y = pad.y;
+    interactLock = true;
+    show(ui.dialog, false);
+    show(ui.card, false);
+    scene = 'world';
+    drawHud();
+    beep(880, 0.08, 0.05, 'square');
+    beep(1180, 0.14, 0.04, 'square');
+  }
+
   var typed = '';
   var NUKE_CODE = 'howdoiturnthison';
+  var SPORT_CODE = 'vroom';
 
   window.addEventListener('keydown', function (e) {
     keys[e.key] = true;
     if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      typed = (typed + e.key.toLowerCase()).slice(-NUKE_CODE.length);
-      if (typed === NUKE_CODE) {
+      typed = (typed + e.key.toLowerCase()).slice(-24);
+      if (typed.slice(-NUKE_CODE.length) === NUKE_CODE) {
         typed = '';
         ensureAudio();
         startNuke(true);
+      } else if (typed.slice(-SPORT_CODE.length) === SPORT_CODE) {
+        typed = '';
+        ensureAudio();
+        spawnSport();
       }
     }
     if ((e.key === '1' || e.code === 'Numpad1') && !e.repeat && (scene === 'world' || scene === 'ride')) {
