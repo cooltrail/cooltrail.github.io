@@ -172,14 +172,16 @@ function checkerTexture(THREE) {
   return texture;
 }
 
-function makeCar(THREE, color, kind = "sedan") {
+function makeCar(THREE, color, kind = "911") {
   const group = new THREE.Group();
   const chassis = new THREE.Group();
   group.add(chassis);
   const paint = plainMaterial(THREE, color);
   const dark = plainMaterial(THREE, 0x243044);
   const glassMat = plainMaterial(THREE, 0xb7e4f8);
-  const lampMat = plainMaterial(THREE, 0xfff4c4);
+  const lampMat = plainMaterial(THREE, 0xfff6d0);
+  const chrome = plainMaterial(THREE, 0xd5d8dc);
+  const roof = plainMaterial(THREE, 0xf7f4ee);
 
   function part(w, h, d, mat, x, y, z) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -190,53 +192,123 @@ function makeCar(THREE, color, kind = "sedan") {
   }
 
   let radius = 0.28;
-  let halfTrack = 0.72;
-  let axle = 0.95;
-  if (kind === "sport") {
-    radius = 0.26;
-    halfTrack = 0.78;
-    axle = 1.05;
-    part(1.72, 0.3, 3.45, paint, 0, 0.42, 0.05);
-    part(1.12, 0.28, 1.0, dark, 0, 0.68, -0.28);
-    part(1.45, 0.06, 0.22, paint, 0, 0.78, -1.6);
-    part(0.18, 0.08, 0.06, lampMat, 0.55, 0.48, 1.7);
-    part(0.18, 0.08, 0.06, lampMat, -0.55, 0.48, 1.7);
-  } else if (kind === "truck") {
-    radius = 0.36;
-    halfTrack = 0.8;
-    axle = 1.15;
-    part(1.62, 0.38, 1.9, paint, 0, 0.78, -0.75);
-    part(1.5, 0.72, 1.25, paint, 0, 1.12, 0.9);
-    part(1.32, 0.28, 0.06, glassMat, 0, 1.22, 1.5);
-    part(1.5, 0.12, 0.08, dark, 0, 0.95, -1.65);
-  } else if (kind === "van") {
-    radius = 0.3;
-    halfTrack = 0.78;
-    axle = 1.15;
-    part(1.72, 1.15, 3.35, paint, 0, 0.98, 0);
-    part(1.5, 0.32, 0.06, glassMat, 0, 1.28, 1.66);
-    part(1.5, 0.22, 2.2, glassMat, 0, 1.32, -0.15);
-  } else if (kind === "buggy") {
+  let halfTrack = 0.74;
+  let axle = 1.0;
+  let tireWidth = 0.18;
+
+  if (kind === "jeep") {
     radius = 0.38;
-    halfTrack = 0.88;
+    halfTrack = 0.86;
     axle = 1.05;
-    part(1.25, 0.16, 2.3, paint, 0, 0.66, 0);
-    part(0.7, 0.22, 0.7, dark, 0, 0.82, -0.1);
-    part(1.15, 0.08, 0.08, dark, 0, 1.28, -0.25);
-    part(0.08, 0.62, 0.08, dark, 0.52, 0.98, -0.25);
-    part(0.08, 0.62, 0.08, dark, -0.52, 0.98, -0.25);
+    tireWidth = 0.26;
+    part(1.5, 0.42, 2.7, paint, 0, 0.78, 0);
+    part(1.35, 0.12, 1.0, paint, 0, 1.0, 0.8);
+    const shield = part(1.28, 0.5, 0.06, glassMat, 0, 1.28, 0.42);
+    shield.rotation.x = -0.25;
+    part(0.08, 0.55, 0.08, dark, 0.62, 1.15, -0.15);
+    part(0.08, 0.55, 0.08, dark, -0.62, 1.15, -0.15);
+    part(1.2, 0.06, 0.08, dark, 0, 1.4, -0.15);
+    part(0.7, 0.32, 0.06, dark, 0, 0.78, 1.38);
+    part(1.55, 0.1, 0.1, chrome, 0, 0.58, 1.38);
+    const spareGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.12, 12);
+    spareGeo.rotateX(Math.PI / 2);
+    const spare = new THREE.Mesh(spareGeo, plainMaterial(THREE, 0x1b1b1b));
+    spare.position.set(0, 1.0, -1.42);
+    spare.castShadow = true;
+    chassis.add(spare);
+  } else if (kind === "bus") {
+    radius = 0.3;
+    halfTrack = 0.8;
+    axle = 1.25;
+    part(1.7, 1.15, 3.3, paint, 0, 1.05, -0.05);
+    part(1.55, 0.22, 3.05, roof, 0, 1.68, -0.05);
+    part(0.55, 0.42, 0.06, glassMat, -0.38, 1.22, 1.64);
+    part(0.55, 0.42, 0.06, glassMat, 0.38, 1.22, 1.64);
+    const noseL = part(0.12, 0.7, 0.85, paint, -0.5, 0.85, 1.45);
+    noseL.rotation.y = 0.5;
+    const noseR = part(0.12, 0.7, 0.85, paint, 0.5, 0.85, 1.45);
+    noseR.rotation.y = -0.5;
+    part(0.16, 0.16, 0.08, lampMat, -0.55, 0.62, 1.62);
+    part(0.16, 0.16, 0.08, lampMat, 0.55, 0.62, 1.62);
+  } else if (kind === "beetle") {
+    radius = 0.26;
+    halfTrack = 0.72;
+    axle = 0.82;
+    part(1.35, 0.36, 2.45, paint, 0, 0.5, 0);
+    part(0.28, 0.28, 2.2, paint, 0.72, 0.48, 0);
+    part(0.28, 0.28, 2.2, paint, -0.72, 0.48, 0);
+    part(1.15, 0.42, 1.45, paint, 0, 0.82, -0.05);
+    part(0.9, 0.16, 1.05, paint, 0, 1.08, -0.05);
+    part(1.05, 0.28, 0.4, glassMat, 0, 0.9, 0.62);
+    const lampGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.08, 8);
+    lampGeo.rotateX(Math.PI / 2);
+    for (const x of [-0.38, 0.38]) {
+      const lamp = new THREE.Mesh(lampGeo, lampMat);
+      lamp.position.set(x, 0.58, 1.22);
+      chassis.add(lamp);
+    }
+  } else if (kind === "wedge") {
+    radius = 0.26;
+    halfTrack = 0.9;
+    axle = 1.12;
+    tireWidth = 0.24;
+    part(1.9, 0.2, 3.7, paint, 0, 0.38, 0);
+    const nose = part(1.55, 0.14, 1.15, paint, 0, 0.34, 1.35);
+    nose.rotation.x = 0.22;
+    part(1.15, 0.26, 0.85, dark, 0, 0.58, 0.2);
+    const wind = part(1.05, 0.22, 0.45, glassMat, 0, 0.58, 0.62);
+    wind.rotation.x = -0.7;
+    for (let i = 0; i < 4; i += 1) part(1.25, 0.025, 0.07, dark, 0, 0.5, -0.85 - i * 0.16);
+  } else if (kind === "f150") {
+    radius = 0.36;
+    halfTrack = 0.82;
+    axle = 1.2;
+    tireWidth = 0.26;
+    part(1.65, 0.32, 2.15, paint, 0, 0.72, -0.75);
+    part(1.55, 0.1, 2.0, dark, 0, 0.92, -0.75);
+    part(1.55, 0.68, 1.3, paint, 0, 1.15, 0.95);
+    part(1.35, 0.32, 0.06, glassMat, 0, 1.28, 1.58);
+    part(1.2, 0.32, 0.06, dark, 0, 0.78, 1.72);
+    part(1.7, 0.1, 0.12, chrome, 0, 0.55, 1.75);
+  } else if (kind === "cyber") {
+    radius = 0.34;
+    halfTrack = 0.9;
+    axle = 1.2;
+    tireWidth = 0.22;
+    const steel = plainMaterial(THREE, color);
+    part(1.9, 0.28, 3.8, steel, 0, 0.55, 0);
+    const sail = part(1.75, 0.7, 1.7, steel, 0, 0.95, -0.7);
+    sail.rotation.x = 0.15;
+    const visor = part(1.7, 0.55, 1.35, glassMat, 0, 0.9, 0.55);
+    visor.rotation.x = -0.55;
+    part(1.85, 0.08, 0.08, dark, 0, 0.62, 1.9);
   } else {
-    part(1.45, 0.46, 3.05, paint, 0, 0.52, 0);
-    part(1.2, 0.4, 1.3, dark, 0, 0.9, -0.12);
-    part(1.1, 0.26, 0.06, glassMat, 0, 0.92, 0.52);
-    part(0.22, 0.1, 0.06, lampMat, 0.42, 0.58, 1.52);
-    part(0.22, 0.1, 0.06, lampMat, -0.42, 0.58, 1.52);
-    part(0.9, 0.08, 0.06, plainMaterial(THREE, 0xd94a32), 0, 0.62, -1.52);
+    radius = 0.27;
+    halfTrack = 0.8;
+    axle = 1.02;
+    tireWidth = 0.22;
+    part(1.65, 0.28, 3.45, paint, 0, 0.44, 0);
+    part(0.32, 0.18, 1.5, paint, 0.78, 0.62, -0.55);
+    part(0.32, 0.18, 1.5, paint, -0.78, 0.62, -0.55);
+    part(1.15, 0.3, 1.15, paint, 0, 0.68, -0.2);
+    const wind = part(1.08, 0.22, 0.42, glassMat, 0, 0.72, 0.38);
+    wind.rotation.x = -0.65;
+    part(1.4, 0.08, 0.14, paint, 0, 0.7, -1.62);
+    const lampGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.08, 8);
+    lampGeo.rotateX(Math.PI / 2);
+    for (const x of [-0.48, 0.48]) {
+      const lamp = new THREE.Mesh(lampGeo, lampMat);
+      lamp.position.set(x, 0.5, 1.7);
+      chassis.add(lamp);
+    }
   }
 
-  const wheelGeo = new THREE.CylinderGeometry(radius, radius, kind === "truck" || kind === "buggy" ? 0.24 : 0.18, 14);
+  const wheelGeo = new THREE.CylinderGeometry(radius, radius, tireWidth, 14);
   wheelGeo.rotateZ(Math.PI / 2);
+  const capGeo = new THREE.CylinderGeometry(radius * 0.42, radius * 0.42, tireWidth + 0.04, 10);
+  capGeo.rotateZ(Math.PI / 2);
   const wheelMat = plainMaterial(THREE, 0x1b1b1b);
+  const capMat = plainMaterial(THREE, 0x9aa0a6);
   const wheels = [];
   for (const [x, z, front] of [[halfTrack, axle, true], [-halfTrack, axle, true], [halfTrack, -axle, false], [-halfTrack, -axle, false]]) {
     const steer = new THREE.Group();
@@ -245,7 +317,9 @@ function makeCar(THREE, color, kind = "sedan") {
     const spin = new THREE.Group();
     const wheel = new THREE.Mesh(wheelGeo, wheelMat);
     wheel.castShadow = true;
+    const cap = new THREE.Mesh(capGeo, capMat);
     spin.add(wheel);
+    spin.add(cap);
     strut.add(spin);
     steer.add(strut);
     group.add(steer);
@@ -387,11 +461,11 @@ async function main() {
   scene.add(hill);
 
   const racers = [
-    { t: 0.02, speed: 0.042, lane: 1.05, color: 0xd94a32, kind: "sport" },
-    { t: 0.22, speed: 0.03, lane: -1.05, color: 0x3d7ec9, kind: "truck" },
-    { t: 0.45, speed: 0.048, lane: 1.05, color: 0xf2c14e, kind: "van" },
-    { t: 0.66, speed: 0.028, lane: -1.05, color: 0xf7f7f7, kind: "buggy" },
-    { t: 0.84, speed: 0.036, lane: 1.05, color: 0x3cb371, kind: "sedan" },
+    { t: 0.02, speed: 0.046, lane: 1.05, color: 0xf4f4f4, kind: "wedge" },
+    { t: 0.22, speed: 0.03, lane: -1.05, color: 0x2f6fed, kind: "f150" },
+    { t: 0.45, speed: 0.04, lane: 1.05, color: 0xf4d03f, kind: "beetle" },
+    { t: 0.66, speed: 0.028, lane: -1.05, color: 0x2e7d32, kind: "jeep" },
+    { t: 0.84, speed: 0.034, lane: 1.05, color: 0xc0392b, kind: "bus" },
   ].map((racer) => {
     const mesh = makeCar(THREE, racer.color, racer.kind);
     scene.add(mesh);
@@ -399,9 +473,9 @@ async function main() {
   });
 
   const parked = [
-    { x: 40, z: -48, yaw: Math.PI / 2, color: 0x9b59b6, kind: "sport" },
-    { x: -42, z: 26, yaw: 0.6, color: 0x16a085, kind: "truck" },
-    { x: 70, z: -52, yaw: -0.4, color: 0xe67e22, kind: "buggy" },
+    { x: 40, z: -48, yaw: Math.PI / 2, color: 0xc5ccd6, kind: "cyber" },
+    { x: -42, z: 26, yaw: 0.6, color: 0x1a1a1a, kind: "911" },
+    { x: 70, z: -52, yaw: -0.4, color: 0xf1c40f, kind: "jeep" },
   ].map((spot) => {
     const mesh = makeCar(THREE, spot.color, spot.kind);
     mesh.position.set(spot.x, 0.02, spot.z);
@@ -420,7 +494,7 @@ async function main() {
   block.receiveShadow = true;
 
   const spawn = trackFrame(0.08);
-  const car = makeCar(THREE, 0xff7a1a, "sedan");
+  const car = makeCar(THREE, 0xe67e22, "911");
   block.position.set(0, 0.72, -0.02);
   block.visible = false;
   car.add(block);
