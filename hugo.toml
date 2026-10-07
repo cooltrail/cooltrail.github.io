@@ -241,6 +241,14 @@ enableEmoji = true
     url = "/callpole/"
     title = "Play Callpole"
     weight = 4
+  [[menu.main]]
+    identifier = "blockplate"
+    pre = ""
+    post = ""
+    name = "Blockplate"
+    url = "/blockplate/"
+    title = "Play Blockplate"
+    weight = 5
 
 # Markup related config
 [markup]
