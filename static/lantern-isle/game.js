@@ -10,6 +10,8 @@
   var CITY_H = 46;
   var MCOLS = 48;
   var MROWS = 32;
+  var TCOLS = 360;
+  var TROWS = 88;
   var CHAR_W = 10;
   var CHAR_H = 12;
   var SAVE = 'callpole-v3';
@@ -89,10 +91,13 @@
   var buildings = [];
   var cityMap = [];
   var mallMap = [];
+  var trackMap = [];
   var cityBuildings = [];
   var mallBuildings = [];
+  var trackBuildings = [];
   var place = 'city';
   var cityReturn = { x: 0, y: 0 };
+  var worldReturn = { place: 'city', x: 0, y: 0 };
   var player = { x: 0, y: 0, vx: 0, vy: 0, dir: 0, walk: 0 };
   var npcs = [];
   var poles = [];
@@ -175,10 +180,31 @@
     return m;
   }
 
+  function placeMap(p) {
+    if (p === 'mall') return mallMap;
+    if (p === 'track') return trackMap;
+    return cityMap;
+  }
+
+  function placeBuildings(p) {
+    if (p === 'mall') return mallBuildings;
+    if (p === 'track') return trackBuildings;
+    return cityBuildings;
+  }
+
   function usePlace(p) {
     place = p;
-    map = p === 'mall' ? mallMap : cityMap;
-    buildings = p === 'mall' ? mallBuildings : cityBuildings;
+    map = placeMap(p);
+    buildings = placeBuildings(p);
+  }
+
+  function snapCamToPlayer() {
+    var maxX = Math.max(0, (map[0] ? map[0].length : COLS) * TILE - VW);
+    var maxY = Math.max(0, (map.length || ROWS) * TILE - VH);
+    cam.x = clamp(player.x - VW / 2, 0, maxX);
+    cam.y = clamp(player.y - VH / 2, 0, maxY);
+    cam.tx = cam.x;
+    cam.ty = cam.y;
   }
 
   function addBuilding(x, y, w, h, col) {
@@ -239,7 +265,60 @@
     addBuilding(34, 24, 10, 5);
     mallMap = map;
     mallBuildings = buildings;
+    buildTrack();
     usePlace('city');
+  }
+
+  function buildTrack() {
+    var i;
+    map = allocMap(TCOLS, TROWS);
+    buildings = [];
+    fill(0, 0, TCOLS, TROWS, 7);
+    fill(8, 6, 152, 5, 9);
+    fill(8, 53, 152, 5, 9);
+    fill(8, 6, 5, 52, 9);
+    fill(155, 6, 5, 52, 9);
+    fill(8, 18, 5, 18, 7);
+    fill(8, 31, 22, 5, 9);
+    fill(25, 18, 5, 18, 9);
+    fill(8, 18, 22, 5, 9);
+    fill(50, 6, 32, 5, 7);
+    fill(48, 1, 12, 6, 9);
+    fill(54, 1, 5, 10, 9);
+    fill(54, 6, 20, 5, 9);
+    fill(69, 1, 5, 10, 9);
+    fill(69, 1, 14, 6, 9);
+    fill(155, 20, 22, 5, 9);
+    fill(172, 20, 5, 18, 9);
+    fill(155, 33, 22, 5, 9);
+    fill(18, 47, 90, 3, 1);
+    fill(18, 47, 3, 6, 1);
+    fill(105, 47, 3, 6, 1);
+    for (i = 0; i < 6; i++) fill(30 + i * 2, 53, 1, 5, i % 2 ? 5 : 6);
+    fill(148, 16, 10, 5, 12);
+    fill(160, 38, 14, 6, 12);
+    addBuilding(26, 60, 28, 5, '#6a7080');
+    addBuilding(58, 60, 22, 5, '#6a7080');
+    addBuilding(3, 22, 3, 14, '#5a6070');
+    addBuilding(164, 8, 4, 10, '#5a6070');
+    addBuilding(32, 42, 20, 3, '#4a8a7a');
+    addBuilding(78, 42, 14, 3, '#888888');
+    addBuilding(48, 38, 4, 4, '#d94a32');
+    fill(4, 72, TCOLS - 10, 6, 9);
+    fill(8, 72, 2, 6, 5);
+    fill(TCOLS - 18, 72, 2, 6, 5);
+    fill(TCOLS - 16, 72, 10, 6, 12);
+    addBuilding(4, 67, 8, 3, '#3a3a42');
+    addBuilding(4, 79, 8, 3, '#3a3a42');
+    addBuilding(TCOLS - 14, 67, 8, 3, '#3a3a42');
+    fill(22, 58, 5, 14, 9);
+    fill(148, 58, 5, 14, 9);
+    for (i = 2; i < TCOLS - 2; i += 6) {
+      if (map[1]) map[1][i] = 8;
+      if (map[TROWS - 2]) map[TROWS - 2][i] = 8;
+    }
+    trackMap = map;
+    trackBuildings = buildings;
   }
 
   function bootEntities() {
@@ -473,8 +552,8 @@
 
   function carSize(c) {
     var horiz = c.dir === 1 || c.dir === 2;
-    var long = c.kind === 'bus' ? 18 : c.kind === 'taxi' ? 14 : (c.kind === 'sport' || c.kind === 'outdoors') ? 16 : 12;
-    var short = c.kind === 'bus' ? 8 : (c.kind === 'sport' || c.kind === 'outdoors') ? 6 : 7;
+    var long = c.kind === 'bus' ? 18 : c.kind === 'taxi' ? 14 : c.kind === 'rocket' ? 18 : (c.kind === 'sport' || c.kind === 'outdoors') ? 16 : 12;
+    var short = c.kind === 'bus' ? 8 : (c.kind === 'sport' || c.kind === 'outdoors' || c.kind === 'rocket') ? 6 : 7;
     return horiz ? { w: long, h: short } : { w: short, h: long };
   }
 
@@ -811,8 +890,8 @@
   }
 
   function isRoad(tx, ty) {
-    if (!cityMap[ty] || tx < 0 || ty < 0 || tx >= cityMap[0].length || ty >= cityMap.length) return false;
-    var id = cityMap[ty][tx];
+    if (!map[ty] || tx < 0 || ty < 0 || tx >= map[0].length || ty >= map.length) return false;
+    var id = map[ty][tx];
     return id === 1 || id === 5 || id === 6 || id === 9;
   }
 
@@ -907,7 +986,13 @@
       pix(gx, gy, TILE, TILE, nuked ? '#161410' : C.hwy);
       tx = Math.floor(sx / TILE);
       ty = Math.floor(sy / TILE);
-      if ((ty === 9 || ty === 17 || ty === 25 || ty === 51) && tx % 2 === 0) {
+      if (place === 'track') {
+        if (roadTile(tileAt(sx - TILE, sy + 8)) && roadTile(tileAt(sx + TILE + 8, sy + 8)) && tx % 2 === 0) {
+          pix(gx + 1, gy + 7, TILE - 2, 2, C.line);
+        } else if (roadTile(tileAt(sx + 8, sy - TILE)) && roadTile(tileAt(sx + 8, sy + TILE + 8)) && ty % 2 === 0) {
+          pix(gx + 7, gy + 1, 2, TILE - 2, C.line);
+        }
+      } else if ((ty === 9 || ty === 17 || ty === 25 || ty === 51) && tx % 2 === 0) {
         pix(gx + 1, gy + 7, TILE - 2, 2, C.line);
       } else if ((tx === 11 || tx === 57 || tx === 99) && ty % 2 === 0) {
         pix(gx + 7, gy + 1, 2, TILE - 2, C.line);
@@ -1197,12 +1282,15 @@
   }
 
   function updateDrive(dt) {
-    var cheat = drive.kind === 'sport' || drive.kind === 'outdoors';
+    var cheat = drive.kind === 'sport' || drive.kind === 'outdoors' || drive.kind === 'rocket';
     if (!cheat && gas <= 0) {
       parkCar();
       return;
     }
-    var spd = drive.kind === 'sport' ? 392 : drive.kind === 'outdoors' ? 196 : 108;
+    var spd = 108;
+    if (drive.kind === 'outdoors') spd = 196;
+    if (drive.kind === 'sport') spd = 392;
+    if (drive.kind === 'rocket') spd = 1960;
     var ox = drive.x;
     var oy = drive.y;
     var vx = (hold.left ? -spd : 0) + (hold.right ? spd : 0);
@@ -1218,20 +1306,26 @@
       drive.dir = vy > 0 ? 0 : 3;
     }
     var sz = carSize(drive);
-    var nx = drive.x + vx * dt;
-    var ny = drive.y + vy * dt;
-    if (driveOk(nx, drive.y, sz)) drive.x = nx;
-    if (driveOk(drive.x, ny, sz)) drive.y = ny;
+    var steps = Math.max(1, Math.ceil(Math.max(Math.abs(vx), Math.abs(vy)) * dt / 8));
+    var sdt = dt / steps;
+    var i, nx, ny;
+    for (i = 0; i < steps; i++) {
+      nx = drive.x + vx * sdt;
+      ny = drive.y + vy * sdt;
+      if (driveOk(nx, drive.y, sz)) drive.x = nx;
+      if (driveOk(drive.x, ny, sz)) drive.y = ny;
+    }
     if (!cheat && Math.abs(drive.x - ox) + Math.abs(drive.y - oy) > 0.2) {
       gas = Math.max(0, gas - 4 * dt);
       drawHud();
     }
     player.x = drive.x;
     player.y = drive.y;
+    var camLerp = drive.kind === 'rocket' ? 18 : 7;
     cam.tx = clamp(player.x - VW / 2, 0, Math.max(0, map[0].length * TILE - VW));
     cam.ty = clamp(player.y - VH / 2, 0, Math.max(0, map.length * TILE - VH));
-    cam.x += (cam.tx - cam.x) * Math.min(1, dt * 7);
-    cam.y += (cam.ty - cam.y) * Math.min(1, dt * 7);
+    cam.x += (cam.tx - cam.x) * Math.min(1, dt * camLerp);
+    cam.y += (cam.ty - cam.y) * Math.min(1, dt * camLerp);
   }
 
   function drawPole(p) {
@@ -1370,6 +1464,7 @@
     if (kind === 'rental') return '#3cb8a0';
     if (kind === 'sport') return '#d94a32';
     if (kind === 'outdoors') return '#6a8c32';
+    if (kind === 'rocket') return '#efe8dc';
     return '#8b93a3';
   }
 
@@ -1384,8 +1479,18 @@
     var tail = C.verm;
     if (x + s.w < 0 || y + s.h < 0 || x > VW || y > VH) return;
     pix(x, y, s.w, s.h, col);
-    if (c.kind === 'sport' || c.kind === 'outdoors') {
-      pix(x + (horiz ? 2 : 2), y + (horiz ? 2 : 3), horiz ? s.w - 4 : 2, horiz ? 2 : s.h - 6, C.accent);
+    if (c.kind === 'sport' || c.kind === 'outdoors' || c.kind === 'rocket') {
+      pix(x + (horiz ? 2 : 2), y + (horiz ? 2 : 3), horiz ? s.w - 4 : 2, horiz ? 2 : s.h - 6, c.kind === 'rocket' ? '#ff6a1a' : C.accent);
+    }
+    if (c.kind === 'rocket') {
+      var flick = Math.floor(time * 18) % 2;
+      if (horiz) {
+        pix(c.dir === 2 ? x - 3 - flick : x + s.w, y + 1, 3 + flick, 4, '#ff8a2a');
+        pix(c.dir === 2 ? x - 5 - flick : x + s.w + 3, y + 2, 2, 2, '#ffe27a');
+      } else {
+        pix(x + 1, c.dir === 0 ? y + s.h : y - 3 - flick, 4, 3 + flick, '#ff8a2a');
+        pix(x + 2, c.dir === 0 ? y + s.h + 3 : y - 5 - flick, 2, 2, '#ffe27a');
+      }
     }
     if (c.kind === 'taxi') {
       pix(x + (horiz ? s.w / 2 - 2 : 2), y + (horiz ? -2 : s.h / 2 - 2), horiz ? 4 : 3, horiz ? 2 : 4, C.taxi);
@@ -1435,6 +1540,9 @@
   }
 
   function drawMinimap() {
+    var src = place === 'track' ? trackMap : cityMap;
+    var cols = src[0] ? src[0].length : COLS;
+    var rows = src.length || ROWS;
     var mw = 64;
     var mh = 42;
     var ox = VW - mw - 5;
@@ -1445,16 +1553,16 @@
     pix(ox - 1, oy - 1, mw + 2, mh + 2, C.paper);
     for (j = 0; j < mh; j++) {
       for (i = 0; i < mw; i++) {
-        tx = Math.min(COLS - 1, Math.floor(i * COLS / mw));
-        ty = Math.min(ROWS - 1, Math.floor(j * ROWS / mh));
-        id = cityMap[ty] ? cityMap[ty][tx] : 7;
+        tx = Math.min(cols - 1, Math.floor(i * cols / mw));
+        ty = Math.min(rows - 1, Math.floor(j * rows / mh));
+        id = src[ty] ? src[ty][tx] : 7;
         pix(ox + i, oy + j, 1, 1, miniColor(id));
       }
     }
-    vx = ox + Math.floor((cam.x / TILE) * mw / COLS);
-    vy = oy + Math.floor((cam.y / TILE) * mh / ROWS);
-    vw = Math.max(3, Math.floor((VW / TILE) * mw / COLS));
-    vh = Math.max(3, Math.floor((VH / TILE) * mh / ROWS));
+    vx = ox + Math.floor((cam.x / TILE) * mw / cols);
+    vy = oy + Math.floor((cam.y / TILE) * mh / rows);
+    vw = Math.max(3, Math.floor((VW / TILE) * mw / cols));
+    vh = Math.max(3, Math.floor((VH / TILE) * mh / rows));
     ctx.strokeStyle = C.white;
     ctx.lineWidth = 1;
     ctx.strokeRect(vx + 0.5, vy + 0.5, vw, vh);
@@ -1465,7 +1573,7 @@
       px = player.x / TILE;
       py = player.y / TILE;
     }
-    pix(ox + Math.floor(px * mw / COLS), oy + Math.floor(py * mh / ROWS), 2, 2, C.accent);
+    pix(ox + Math.floor(px * mw / cols), oy + Math.floor(py * mh / rows), 2, 2, C.accent);
   }
 
   function drawWorld() {
@@ -1497,7 +1605,7 @@
       });
       poles.forEach(drawPole);
       if (!nuked) cars.forEach(drawCar);
-    } else {
+    } else if (place === 'mall') {
       pix(20 * TILE - cam.x, 0 - cam.y, 8 * TILE, 4, '#555555');
       pix(20 * TILE - cam.x, (MROWS - 1) * TILE - cam.y, 8 * TILE, TILE, '#555555');
       pix(0 - cam.x, 13 * TILE - cam.y, 4, 6 * TILE, '#555555');
@@ -1653,7 +1761,7 @@
             near = { kind: 'mall', e: e, text: 'Enter · Mall' };
           }
         }
-      } else {
+      } else if (place === 'mall') {
         for (i = 0; i < mallDoors.length; i++) {
           e = mallDoors[i];
           if (inDoor(player, e.ix, e.iy, e.iw, e.ih)) {
@@ -2144,10 +2252,21 @@
     return { x: 18 * TILE + 8, y: 20 * TILE + 8 };
   }
 
+  function enterCheatWorld() {
+    if (scene === 'title') begin();
+    show(ui.title, false);
+    show(ui.dialog, false);
+    show(ui.card, false);
+    show(ui.hud, true);
+    scene = 'world';
+    interactLock = false;
+    drawHud();
+  }
+
   function spawnCheatCar(kind, label) {
     if (nuked || scene === 'nuke' || scene === 'end') return;
     if (scene === 'title') begin();
-    if (place !== 'city') {
+    if (place === 'mall') {
       usePlace('city');
       player.x = cityReturn.x || 18 * TILE;
       player.y = cityReturn.y || 20 * TILE;
@@ -2162,36 +2281,90 @@
     gas = 100;
     player.x = pad.x;
     player.y = pad.y;
-    cam.x = clamp(player.x - VW / 2, 0, Math.max(0, cityMap[0].length * TILE - VW));
-    cam.y = clamp(player.y - VH / 2, 0, Math.max(0, cityMap.length * TILE - VH));
-    cam.tx = cam.x;
-    cam.ty = cam.y;
-    interactLock = false;
-    show(ui.title, false);
-    show(ui.dialog, false);
-    show(ui.card, false);
-    show(ui.hud, true);
-    scene = 'world';
-    drawHud();
+    snapCamToPlayer();
+    enterCheatWorld();
     ui.prompt.textContent = label;
     show(ui.prompt, true);
     beep(880, 0.08, 0.05, 'square');
     beep(1180, 0.14, 0.04, 'square');
   }
 
+  function goTrack() {
+    if (nuked || scene === 'nuke' || scene === 'end') return;
+    if (scene === 'title') begin();
+    if (place !== 'track') {
+      worldReturn.place = place === 'mall' ? 'mall' : 'city';
+      worldReturn.x = player.x;
+      worldReturn.y = player.y;
+    }
+    usePlace('track');
+    player.x = 34 * TILE + 8;
+    player.y = 55 * TILE + 8;
+    drive.on = true;
+    drive.parked = false;
+    drive.x = player.x;
+    drive.y = player.y;
+    drive.dir = 2;
+    if (drive.kind !== 'sport' && drive.kind !== 'outdoors' && drive.kind !== 'rocket') {
+      drive.kind = 'sport';
+    }
+    gas = 100;
+    snapCamToPlayer();
+    enterCheatWorld();
+    ui.prompt.textContent = 'Test track · F1 here · drag south · takemeback';
+    show(ui.prompt, true);
+    beep(520, 0.08, 0.05, 'square');
+    beep(780, 0.12, 0.04, 'square');
+  }
+
+  function goWorldBack() {
+    if (nuked || scene === 'nuke' || scene === 'end') return;
+    if (place !== 'track') return;
+    usePlace(worldReturn.place === 'mall' ? 'mall' : 'city');
+    player.x = worldReturn.x || 18 * TILE;
+    player.y = worldReturn.y || 20 * TILE;
+    if (drive.on || drive.parked) {
+      var pad = drive.kind === 'outdoors' ? findOpenWide(player.x, player.y) : findRoadWide(player.x, player.y);
+      drive.x = pad.x;
+      drive.y = pad.y;
+      player.x = pad.x;
+      player.y = pad.y;
+    }
+    snapCamToPlayer();
+    enterCheatWorld();
+    ui.prompt.textContent = 'Back in the city';
+    show(ui.prompt, true);
+    beep(360, 0.08, 0.04, 'triangle');
+  }
+
   var typed = '';
   var NUKE_CODE = 'howdoiturnthison';
   var SPORT_CODE = 'vroom';
   var OUT_CODE = 'outdoors';
+  var AWAY_CODE = 'takemeaway';
+  var BACK_CODE = 'takemeback';
+  var ROCKET_CODE = 'rocketpower';
 
   window.addEventListener('keydown', function (e) {
     keys[e.key] = true;
     if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      typed = (typed + e.key.toLowerCase()).slice(-24);
+      typed = (typed + e.key.toLowerCase()).slice(-32);
       if (typed.slice(-NUKE_CODE.length) === NUKE_CODE) {
         typed = '';
         ensureAudio();
         startNuke(true);
+      } else if (typed.slice(-AWAY_CODE.length) === AWAY_CODE) {
+        typed = '';
+        ensureAudio();
+        goTrack();
+      } else if (typed.slice(-BACK_CODE.length) === BACK_CODE) {
+        typed = '';
+        ensureAudio();
+        goWorldBack();
+      } else if (typed.slice(-ROCKET_CODE.length) === ROCKET_CODE) {
+        typed = '';
+        ensureAudio();
+        spawnCheatCar('rocket', 'Rocket car');
       } else if (typed.slice(-SPORT_CODE.length) === SPORT_CODE) {
         typed = '';
         ensureAudio();
