@@ -2090,24 +2090,55 @@
     beep(392, 0.08, 0.04, 'sine');
   }
 
+  function findRoadWide(px, py) {
+    var n = nearestRoad(px, py);
+    var tx = Math.floor(n.x / TILE);
+    var ty = Math.floor(n.y / TILE);
+    if (isRoad(tx, ty)) return n;
+    var r, dx, dy;
+    for (r = 1; r <= 24; r++) {
+      for (dy = -r; dy <= r; dy++) {
+        for (dx = -r; dx <= r; dx++) {
+          if (isRoad(tx + dx, ty + dy)) {
+            return { x: (tx + dx) * TILE + 8, y: (ty + dy) * TILE + 8 };
+          }
+        }
+      }
+    }
+    return { x: 12 * TILE + 8, y: 16 * TILE + 8 };
+  }
+
   function spawnSport() {
-    if (nuked || scene === 'nuke' || scene === 'end' || scene === 'title') return;
-    if (place !== 'city') return;
-    var pad = nearestRoad(player.x, player.y);
+    if (nuked || scene === 'nuke' || scene === 'end') return;
+    if (scene === 'title') begin();
+    if (place !== 'city') {
+      usePlace('city');
+      player.x = cityReturn.x || 18 * TILE;
+      player.y = cityReturn.y || 20 * TILE;
+    }
+    var pad = findRoadWide(player.x, player.y);
     drive.on = true;
     drive.parked = false;
     drive.x = pad.x;
     drive.y = pad.y;
-    drive.dir = player.dir === 1 ? 1 : 2;
+    drive.dir = 2;
     drive.kind = 'sport';
     gas = 100;
     player.x = pad.x;
     player.y = pad.y;
-    interactLock = true;
+    cam.x = clamp(player.x - VW / 2, 0, Math.max(0, cityMap[0].length * TILE - VW));
+    cam.y = clamp(player.y - VH / 2, 0, Math.max(0, cityMap.length * TILE - VH));
+    cam.tx = cam.x;
+    cam.ty = cam.y;
+    interactLock = false;
+    show(ui.title, false);
     show(ui.dialog, false);
     show(ui.card, false);
+    show(ui.hud, true);
     scene = 'world';
     drawHud();
+    ui.prompt.textContent = 'Test sports car';
+    show(ui.prompt, true);
     beep(880, 0.08, 0.05, 'square');
     beep(1180, 0.14, 0.04, 'square');
   }
