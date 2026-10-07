@@ -3,7 +3,7 @@ title = 'Blockplate'
 date = '2026-10-07T15:00:00-07:00'
 draft = false
 author = '@blue749rabbit'
-description = 'You are a tall thin block. Cars race a track on a huge baseplate.'
+description = 'You are a tall thin block driving a car on a racetrack.'
 tags = ['game', 'blockplate']
 categories = ['games']
 +++
@@ -12,9 +12,9 @@ categories = ['games']
 
 <iframe class="isle-frame" src="/blockplate/" title="Blockplate" allow="autoplay"></iframe>
 
-You are a **tall thin block**. The world is one **large baseplate** with a **racetrack**. Cars race the oval. Walk around, jump, and stay out of their way.
+You are a **tall thin block** in the driver's seat. The world is one **large baseplate** with a **racetrack**. Other cars race the oval. Drive yours.
 
-WASD or arrows to move. Drag to look around. Space to jump. On a phone, use the pad and drag the view.
+W or up for gas. S, down, or space to brake. A and D, or left and right, to steer. Drag to look around. On a phone, use the pad.
 
 <style>
 .play-btn {

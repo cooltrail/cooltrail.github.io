@@ -4,15 +4,12 @@ const PLATE = 96;
 const BODY_W = 0.9;
 const BODY_H = 3.2;
 const BODY_D = 0.32;
-const FOOT = Math.max(BODY_W, BODY_D) / 2;
-const EYE = 1.5;
 const TRACK_RX = 30.5;
 const TRACK_RY = 18.5;
 const ROAD_HALF = 3.4;
 
 const keys = new Set();
 const pad = new Set();
-let jumpQueued = false;
 
 const canvas = document.getElementById("view");
 const hint = document.getElementById("hint");
@@ -25,7 +22,6 @@ function showError(message) {
 
 window.addEventListener("keydown", (event) => {
   keys.add(event.code);
-  if (event.code === "Space" && !event.repeat) jumpQueued = true;
   if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) {
     event.preventDefault();
   }
@@ -57,10 +53,7 @@ document.querySelectorAll("[data-dir]").forEach((button) => {
   bindHold(button, button.dataset.dir);
 });
 
-document.getElementById("jump").addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  jumpQueued = true;
-});
+bindHold(document.getElementById("jump"), "down");
 
 function held(code, dir) {
   return keys.has(code) || pad.has(dir);
@@ -228,14 +221,19 @@ function makeCar(THREE, color) {
   wheelGeo.rotateZ(Math.PI / 2);
   const wheelMat = plainMaterial(THREE, 0x1b1b1b);
   const wheels = [];
-  for (const [x, z] of [[0.72, 0.95], [-0.72, 0.95], [0.72, -0.95], [-0.72, -0.95]]) {
+  const fronts = [];
+  for (const [x, z, front] of [[0.72, 0.95, true], [-0.72, 0.95, true], [0.72, -0.95, false], [-0.72, -0.95, false]]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 0.28, z);
     const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-    wheel.position.set(x, 0.28, z);
     wheel.castShadow = true;
-    group.add(wheel);
+    pivot.add(wheel);
+    group.add(pivot);
     wheels.push(wheel);
+    if (front) fronts.push(pivot);
   }
   group.userData.wheels = wheels;
+  group.userData.fronts = fronts;
   return group;
 }
 
@@ -356,18 +354,20 @@ async function main() {
   block.castShadow = true;
   block.receiveShadow = true;
 
-  const player = new THREE.Group();
-  player.add(block);
-  player.position.y = BODY_H / 2;
-  scene.add(player);
+  const spawn = trackFrame(0.08);
+  const car = makeCar(THREE, 0xff7a1a);
+  block.scale.set(0.5, 0.5, 0.5);
+  block.position.set(0, 1.22, -0.05);
+  car.add(block);
+  car.position.set(spawn.x, 0.08, spawn.z);
+  car.rotation.y = spawn.yaw;
+  scene.add(car);
 
-  let yaw = 0.65;
-  let pitch = 0.48;
-  const distance = 12;
-  let vy = 0;
-  let grounded = true;
-  const velocity = new THREE.Vector3();
-  let walk = 0;
+  let heading = spawn.yaw;
+  let carSpeed = 0;
+  let yaw = 0;
+  let pitch = 0.38;
+  const distance = 9.5;
   let dragging = false;
   let lastX = 0;
   let lastY = 0;
@@ -406,14 +406,9 @@ async function main() {
   window.addEventListener("resize", resize);
   resize();
 
-  const forward = new THREE.Vector3();
-  const right = new THREE.Vector3();
-  const wish = new THREE.Vector3();
   const look = new THREE.Vector3();
-  const half = PLATE / 2 - FOOT - 0.15;
+  const edge = PLATE / 2 - 1.8;
   const clock = new THREE.Clock();
-  const carHalfW = 0.78;
-  const carHalfL = 1.6;
 
   function frame() {
     const dt = Math.min(clock.getDelta(), 0.05);
@@ -421,51 +416,41 @@ async function main() {
     if (keys.has("KeyQ")) yaw += dt * 1.4;
     if (keys.has("KeyE")) yaw -= dt * 1.4;
 
-    forward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
-    right.set(Math.cos(yaw), 0, -Math.sin(yaw));
-    wish.set(0, 0, 0);
-    if (held("KeyW", "up") || keys.has("ArrowUp")) wish.add(forward);
-    if (held("KeyS", "down") || keys.has("ArrowDown")) wish.sub(forward);
-    if (held("KeyA", "left") || keys.has("ArrowLeft")) wish.sub(right);
-    if (held("KeyD", "right") || keys.has("ArrowRight")) wish.add(right);
+    const gas = held("KeyW", "up") || keys.has("ArrowUp");
+    const braking = held("KeyS", "down") || keys.has("ArrowDown") || keys.has("Space");
+    const steerLeft = held("KeyA", "left") || keys.has("ArrowLeft");
+    const steerRight = held("KeyD", "right") || keys.has("ArrowRight");
 
-    const moving = wish.lengthSq() > 0;
-    if (moving) wish.normalize();
+    if (gas && !braking) carSpeed += 32 * dt;
+    else if (braking) carSpeed -= 42 * dt;
+    else carSpeed *= Math.exp(-2.4 * dt);
+    carSpeed = Math.min(18, Math.max(-7, carSpeed));
+    if (Math.abs(carSpeed) < 0.05 && !gas && !braking) carSpeed = 0;
 
-    const accel = moving ? 48 : 0;
-    const drag = grounded ? 6 : 2;
-    velocity.x += wish.x * accel * dt;
-    velocity.z += wish.z * accel * dt;
-    const damp = Math.exp(-drag * dt);
-    velocity.x *= damp;
-    velocity.z *= damp;
+    const turn = (steerLeft ? 1 : 0) - (steerRight ? 1 : 0);
+    const speedFactor = Math.min(1, Math.max(0.28, Math.abs(carSpeed) / 10));
+    heading += turn * 2.15 * speedFactor * Math.sign(carSpeed || 1) * dt;
 
-    const speed = Math.hypot(velocity.x, velocity.z);
-    const maxSpeed = 9;
-    if (speed > maxSpeed) {
-      velocity.x *= maxSpeed / speed;
-      velocity.z *= maxSpeed / speed;
+    const fx = Math.sin(heading);
+    const fz = Math.cos(heading);
+    car.position.x += fx * carSpeed * dt;
+    car.position.z += fz * carSpeed * dt;
+    if (Math.abs(car.position.x) > edge) {
+      car.position.x = Math.sign(car.position.x) * edge;
+      carSpeed *= 0.35;
     }
-
-    player.position.x += velocity.x * dt;
-    player.position.z += velocity.z * dt;
-    player.position.x = Math.min(half, Math.max(-half, player.position.x));
-    player.position.z = Math.min(half, Math.max(-half, player.position.z));
-
-    if (jumpQueued && grounded) {
-      vy = 8.2;
-      grounded = false;
+    if (Math.abs(car.position.z) > edge) {
+      car.position.z = Math.sign(car.position.z) * edge;
+      carSpeed *= 0.35;
     }
-    jumpQueued = false;
+    car.rotation.y = heading;
+    car.position.y = 0.08;
 
-    vy += -26 * dt;
-    player.position.y += vy * dt;
-    if (player.position.y <= BODY_H / 2) {
-      player.position.y = BODY_H / 2;
-      vy = 0;
-      grounded = true;
-    }
+    const steerVisual = (steerRight ? 1 : 0) - (steerLeft ? 1 : 0);
+    for (const pivot of car.userData.fronts) pivot.rotation.y = steerVisual * 0.38;
+    for (const wheel of car.userData.wheels) wheel.rotation.x -= carSpeed * dt * 2.4;
 
+    let bumped = false;
     for (const racer of racers) {
       let speed = racer.base;
       for (const other of racers) {
@@ -486,48 +471,41 @@ async function main() {
       racer.mesh.rotation.y = pose.yaw;
       for (const wheel of racer.mesh.userData.wheels) wheel.rotation.x -= racer.speed * 90 * dt;
 
-      const feet = player.position.y - BODY_H / 2;
-      if (feet > 1.15) continue;
-      const dx = player.position.x - racer.mesh.position.x;
-      const dz = player.position.z - racer.mesh.position.z;
-      const localX = dx * pose.nx + dz * pose.nz;
+      const dx = car.position.x - racer.mesh.position.x;
+      const dz = car.position.z - racer.mesh.position.z;
+      const rx = Math.cos(pose.yaw);
+      const rz = -Math.sin(pose.yaw);
+      const localX = dx * rx + dz * rz;
       const localZ = dx * pose.tx + dz * pose.tz;
-      const limitX = carHalfW + FOOT;
-      const limitZ = carHalfL + FOOT;
+      const limitX = 1.55;
+      const limitZ = 3.15;
       if (Math.abs(localX) >= limitX || Math.abs(localZ) >= limitZ) continue;
       const pushX = limitX - Math.abs(localX);
       const pushZ = limitZ - Math.abs(localZ);
       if (pushX < pushZ) {
         const sign = Math.sign(localX) || 1;
-        player.position.x += pose.nx * sign * pushX;
-        player.position.z += pose.nz * sign * pushX;
+        car.position.x += rx * sign * pushX;
+        car.position.z += rz * sign * pushX;
       } else {
         const sign = Math.sign(localZ) || 1;
-        player.position.x += pose.tx * sign * pushZ;
-        player.position.z += pose.tz * sign * pushZ;
+        car.position.x += pose.tx * sign * pushZ;
+        car.position.z += pose.tz * sign * pushZ;
       }
+      bumped = true;
     }
+    if (bumped) carSpeed *= 0.72;
 
-    if (moving && grounded) {
-      walk += dt * speed * 1.3;
-      block.position.y = Math.abs(Math.sin(walk)) * 0.08;
-      const faceYaw = Math.atan2(wish.x, wish.z);
-      const turn = Math.atan2(Math.sin(faceYaw - player.rotation.y), Math.cos(faceYaw - player.rotation.y));
-      player.rotation.y += turn * Math.min(1, dt * 12);
-    } else {
-      block.position.y += (0 - block.position.y) * Math.min(1, dt * 10);
-    }
-
+    const behind = heading + Math.PI + yaw;
     look.set(
-      Math.sin(yaw) * Math.cos(pitch) * distance,
-      Math.sin(pitch) * distance + EYE,
-      Math.cos(yaw) * Math.cos(pitch) * distance,
+      Math.sin(behind) * Math.cos(pitch) * distance,
+      Math.sin(pitch) * distance + 1.1,
+      Math.cos(behind) * Math.cos(pitch) * distance,
     );
-    camera.position.copy(player.position).add(look);
-    camera.lookAt(player.position.x, player.position.y + 0.15, player.position.z);
+    camera.position.copy(car.position).add(look);
+    camera.lookAt(car.position.x, 0.9, car.position.z);
 
-    sun.position.set(player.position.x + 12, 18, player.position.z + 8);
-    sun.target.position.set(player.position.x, 0, player.position.z);
+    sun.position.set(car.position.x + 12, 18, car.position.z + 8);
+    sun.target.position.set(car.position.x, 0, car.position.z);
     sun.target.updateMatrixWorld();
 
     renderer.render(scene, camera);
