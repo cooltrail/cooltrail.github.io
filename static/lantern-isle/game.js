@@ -2344,6 +2344,7 @@
   var AWAY_CODE = 'takemeaway';
   var BACK_CODE = 'takemeback';
   var ROCKET_CODE = 'rocketpower';
+  var RENT_CODE = 'iwannarentthiscar';
 
   window.addEventListener('keydown', function (e) {
     keys[e.key] = true;
@@ -2365,6 +2366,10 @@
         typed = '';
         ensureAudio();
         spawnCheatCar('rocket', 'Rocket car');
+      } else if (typed.slice(-RENT_CODE.length) === RENT_CODE) {
+        typed = '';
+        ensureAudio();
+        spawnCheatCar('rental', 'Rental car');
       } else if (typed.slice(-SPORT_CODE.length) === SPORT_CODE) {
         typed = '';
         ensureAudio();
