@@ -666,6 +666,36 @@ function Save-PanelImages([string]$Dest) {
     }
 }
 
+function Export-Sky {
+    $filled = @($script:Faces | Where-Object { $script:slots[$_].Box.Image })
+    if ($filled.Count -eq 0) {
+        $script:status.Text = "Nothing to export. Drop a picture on a panel first. Blank sides stay the default sky."
+        return
+    }
+    $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dialog.Description = "Choose a folder. Sky Switcher will make a sky folder inside it."
+    if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+    $name = "My sky"
+    $index = $script:list.SelectedIndex
+    if ($index -ge 0 -and $index -lt $script:skies.Count) { $name = $script:skies[$index].Name }
+    $safe = [regex]::Replace($name, '[<>:"/\\|?*]', "-").Trim()
+    if (-not $safe) { $safe = "My sky" }
+    $dest = Join-Path $dialog.SelectedPath $safe
+    $suffix = 2
+    while (Test-Path -LiteralPath $dest) {
+        $dest = Join-Path $dialog.SelectedPath "$safe $suffix"
+        $suffix++
+    }
+    Save-PanelImages $dest
+    Start-Process explorer.exe -ArgumentList "/select,`"$dest`""
+    $empty = @(Get-EmptyPanelTitles)
+    if ($empty.Count -eq 0) {
+        $script:status.Text = "Exported $(Split-Path -Leaf $dest)."
+    } else {
+        $script:status.Text = "Exported $(Split-Path -Leaf $dest). $($empty -join ', ') stays the default sky."
+    }
+}
+
 function Save-CustomSky {
     $filled = @($script:Faces | Where-Object { $script:slots[$_].Box.Image })
     if ($filled.Count -eq 0) {
@@ -986,6 +1016,7 @@ function Start-Window {
 
     $form.Controls.Add((New-ActionButton "Delete" 16 644 90 "Remove-Selected"))
     $form.Controls.Add((New-ActionButton "New sky" 114 644 90 "New-BlankSky"))
+    $form.Controls.Add((New-ActionButton "Export" 212 644 80 "Export-Sky"))
     $form.Controls.Add((New-ActionButton "Restore original sky" 470 644 160 "Restore-FromButton"))
     $form.Controls.Add((New-ActionButton "Save my sky" 638 644 110 "Save-CustomSky"))
     $use = New-ActionButton "Use this sky" 756 644 208 "Use-SelectedSky"

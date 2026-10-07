@@ -55,6 +55,7 @@ Delete a picture and that side goes back to the default sky. Click **Use this sk
 3. Click **Rotate** under a picture if it is turned the wrong way.
 4. Click **Save my sky** and give it a name. Blank sides stay the default sky.
 5. Click **Use this sky**. You do not need a picture on every side.
+6. Click **Export** to save those pictures into a folder you can share. Blank sides are left out, so they stay the default sky.
 
 **Restore original sky** puts back the sky from the first time you switched.
 
