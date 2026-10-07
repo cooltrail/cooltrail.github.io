@@ -200,7 +200,7 @@ function makeCar(THREE, color, kind = "911") {
   const rim = flat(0xd0d6de, 0.32, 0.48);
   const mats = { paint, dark, glass, lamp, tail, chrome, roof: roofMat };
 
-  const lift = 2;
+  const lift = 1.65;
   function box(w, h, d, mat, x, y, z, rx = 0, ry = 0, rz = 0) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h * lift, d), mat);
     mesh.position.set(x, y * lift, z);
@@ -224,9 +224,9 @@ function makeCar(THREE, color, kind = "911") {
   const spec = JAIL_CARS[kind] || JAIL_CARS["911"];
   spec.build(box, disc, mats);
 
-  const radius = spec.radius * 1.45;
+  const radius = spec.radius * 1.28;
   const { halfTrack, axle } = spec;
-  const tireWidth = spec.tireWidth * 1.3;
+  const tireWidth = spec.tireWidth * 1.15;
   const wheelGeo = new THREE.CylinderGeometry(radius, radius, tireWidth, 8);
   wheelGeo.rotateZ(Math.PI / 2);
   const hubGeo = new THREE.CylinderGeometry(radius * 0.48, radius * 0.48, tireWidth + 0.05, 6);
@@ -955,7 +955,7 @@ async function main() {
       Math.cos(behind) * Math.cos(pitch) * camDist,
     );
     camera.position.copy(focus).add(look);
-    camera.lookAt(focus.x, focus.y + (driving ? 1.05 : 0), focus.z);
+    camera.lookAt(focus.x, focus.y + (driving ? 0.9 : 0), focus.z);
 
     const near = driving ? null : nearestVehicle();
     enterBtn.classList.toggle("hidden", !near);
