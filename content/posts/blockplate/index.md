@@ -3,7 +3,7 @@ title = 'Blockplate'
 date = '2026-10-07T15:00:00-07:00'
 draft = false
 author = '@blue749rabbit'
-description = 'Drive a car on the racetrack. Space steps out of the car.'
+description = 'Drive on a bigger baseplate. Race, hit the bumps, and climb the off-road hill.'
 tags = ['game', 'blockplate']
 categories = ['games']
 +++
@@ -12,9 +12,9 @@ categories = ['games']
 
 <iframe class="isle-frame" src="/blockplate/" title="Blockplate" allow="autoplay"></iframe>
 
-You are a small block in the driver's seat. The world is one **large baseplate** with a **racetrack**. Other cars race the oval. Drive yours, or step out and walk.
+You drive an orange car. The block stays hidden until you step out. The baseplate is bigger, with a **racetrack**, a **bump strip** for the suspension, and a **dirt hill** for off-road. Sports cars, a truck, a van, and a buggy share the roads.
 
-W or up for gas. S or down to brake. A and D, or left and right, to steer. Space gets out, and gets back in when you are next to the car. Drag to look around. On a phone, use the pad.
+W or up for gas. S or down to brake. A and D, or left and right, to steer. Space gets out, and gets back in when you are next to your car. Drag to look around. On a phone, use the pad.
 
 <style>
 .play-btn {
