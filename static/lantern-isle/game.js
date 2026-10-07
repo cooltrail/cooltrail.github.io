@@ -1670,9 +1670,9 @@
       if (drive.parked) {
         d = Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y);
         if (d < 22) {
-          if (pourReady()) near = pourReady();
-          else if (gas <= 0) near = { kind: 'dead', text: 'Dead · Fill the can at a pump' };
-          else near = { kind: 'board', text: 'Get in' };
+          if (gas > 0) near = { kind: 'board', text: 'Get in' };
+          else if (pourReady()) near = pourReady();
+          else near = { kind: 'dead', text: 'Dead · Fill the can at a pump' };
         }
       }
       for (i = 0; i < pieces.length; i++) {
