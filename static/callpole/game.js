@@ -1024,7 +1024,6 @@
     equipped = equipped === 1 ? 0 : 1;
     drawHud();
     beep(420, 0.07, 0.04, 'square');
-    if (equipped === 1 && canPourHere()) pourCan();
   }
 
   function usePump() {
@@ -1670,7 +1669,8 @@
       if (drive.parked) {
         d = Math.abs(player.x - drive.x) + Math.abs(player.y - drive.y);
         if (d < 22) {
-          if (gas > 0) near = { kind: 'board', text: 'Get in' };
+          if (equipped === 1 && jerryFull() && gas < 100) near = { kind: 'pour', text: 'Pour jerry can' };
+          else if (gas > 0) near = { kind: 'board', text: 'Get in' };
           else if (pourReady()) near = pourReady();
           else near = { kind: 'dead', text: 'Dead · Fill the can at a pump' };
         }
