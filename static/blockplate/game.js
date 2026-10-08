@@ -1,4 +1,4 @@
-import { CARS } from "./cars.js";
+import { CARS } from "./cars.js?v=34";
 
 const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
 
@@ -230,9 +230,9 @@ function makeCar(THREE, color, kind = "911") {
   const { radius, tireWidth } = spec;
   const wheelGeo = new THREE.CylinderGeometry(radius, radius, tireWidth, 8);
   wheelGeo.rotateZ(Math.PI / 2);
-  const hubGeo = new THREE.CylinderGeometry(radius * 0.46, radius * 0.46, tireWidth + 0.04, 6);
+  const hubGeo = new THREE.CylinderGeometry(radius * 0.42, radius * 0.42, tireWidth * 0.72, 6);
   hubGeo.rotateZ(Math.PI / 2);
-  const spokeGeo = new THREE.BoxGeometry(tireWidth * 0.22, radius * 0.4, radius * 0.1);
+    const spokeGeo = new THREE.BoxGeometry(tireWidth * 0.16, radius * 0.36, radius * 0.08);
   const rubber = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.9, flatShading: true });
   const rim = new THREE.MeshStandardMaterial({ color: 0xd0d6de, roughness: 0.35, metalness: 0.45, flatShading: true });
   const wheels = [];
